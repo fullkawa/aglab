@@ -373,6 +373,52 @@ class PlayData(DataFrame):
       else:
         return ''
 
+  # 以下、主に学習データ作成用の関数
+
+  def _pack_key(self, self_keys, keys, axis):
+    pkeys = []
+    pdata = PlayData(self.copy())
+    if keys is None:
+      pkeys = self_keys
+    else:
+      for key in self_keys:
+        sub = re.sub(r'\[[0-9]+\]', '', key)
+        if re.match(r'^_.*$', key):
+          # アンダーバーから始まるカラム/フィールドは除外する
+          pdata.drop(key, axis=axis, inplace=True)
+        elif (sub in keys):
+          if sub in pkeys:
+            if axis == 0:
+              pdata.ix[key_] = pdata.ix[key_].add(pdata.ix[key])
+            elif axis == 1:
+              pdata[key_] = pdata[key_].add(pdata[key])
+            pdata.drop(key, axis=axis, inplace=True)
+          else:
+            key_ = sub
+            if axis == 0:
+              pdata.ix[key_] = pdata.ix[key].copy()
+            elif axis == 1:
+              pdata[key_] = pdata[key].copy()
+            pdata.drop(key, axis=axis, inplace=True)
+            pkeys.append(sub)
+        else:
+          pkeys.append(key)
+    return [pkeys, pdata]
+
+  """
+  同一と見なせる行(フィールド)/列(コンポーネント)を束ねる
+  """
+  def pack(self, fields=None, components=None):
+    #print 'fields:', fields, ', components:', components # debug
+    pindex, p1data = self._pack_key(self.index, fields, 0)
+    pcolumns, p2data = p1data._pack_key(p1data.columns, components, 1)
+
+    packed = DataFrame(data=p2data)
+    return packed
+
+
+# 以下、関連クラス
+
 """
 プレイスホルダ解決クラス
 """
