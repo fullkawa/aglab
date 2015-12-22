@@ -131,7 +131,7 @@ on_play = [
 勝ち抜けゲームのとき、終了条件＝勝利条件でもある。
 """
 def is_end(data):
-  turn_pno = data.get_context('turn-p.-no')
+  turn_pno = data.get_context('_turn-p.-no')
   if np.isnan(turn_pno):
     return False
   pno, highscore = data.get_highest(top=turn_pno)
@@ -149,7 +149,7 @@ on_ending = [
 プレイヤーにカード(手札)を配る
 """
 def deal_cards(data, args):
-  player_num = int(data.get_context('player-num'))
+  player_num = int(data.get_context('_player-num'))
   each_card = args[1]
   for n in range(each_card):
     for m in range(player_num):
@@ -185,14 +185,14 @@ def open_card(data, args):
   tp_score, np_score = janken(tp_card, np_card)
   print ' open -> tp_score:', tp_score, ', np_score:', np_score
   
-  tpno = data.get_context('turn-p.-no')
-  tp_scorefield = 'player-{tp}_score'.format(tp=tpno)
+  tpno = data.get_context('_turn-p.-no')
+  tp_scorefield = '_player-{tp}_score'.format(tp=tpno)
   def tp_score_add(value):
     return value + tp_score
   data.calc_context_value(tp_scorefield, tp_score_add)
   
-  npno = data.get_context('next-p.-no')
-  np_scorefield = 'player-{np}_score'.format(np=npno)
+  npno = data.get_context('_next-p.-no')
+  np_scorefield = '_player-{np}_score'.format(np=npno)
   def np_score_add(value):
     return value + np_score
   data.calc_context_value(np_scorefield, np_score_add)

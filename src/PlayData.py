@@ -21,24 +21,24 @@ class PlayData(DataFrame):
   基本的なコンテキスト
   """
   context = [
-     'play',    # プレイ番号
-     'round',   # 現在のラウンド数
-     'turn',    # 現在のターン数
-     'phase',   # 現在のフェイズ名
-     'step',    # 現在のステップ数
-     'level',   # 処理中のレベル
-     'level-step',  # 同一レベル内でのステップ数
-     'level-path',  # 現在のレベルパス
-     'status',  # プレイの状態 =setup/on_play/on_ending/is_overのいずれか
-     'player-num',  # プレイヤー数
-     'alive-players', # プレイ中のプレイヤー番号
-     'player-{n}_score',  # プレイヤーnのスコア。nはプレイヤー番号
-     'player-{n}_type',   # プレイヤーnの種別 =human/randomのいずれか
-     'turn-order',    # ターンの行動順
-     'turn-p.-no',    # ターンプレイヤーのプレイヤー番号
-     'prev-p.-no',    # 前プレイヤーのプレイヤー番号
-     'next-p.-no',    # 次プレイヤーのプレイヤー番号
-     'err-message', # 発生したエラーメッセージ
+     '_play',    # プレイ番号
+     '_round',   # 現在のラウンド数
+     '_turn',    # 現在のターン数
+     '_phase',   # 現在のフェイズ名
+     '_step',    # 現在のステップ数
+     '_level',   # 処理中のレベル
+     '_level-step',  # 同一レベル内でのステップ数
+     '_level-path',  # 現在のレベルパス
+     '_status',  # プレイの状態 =setup/on_play/on_ending/is_overのいずれか
+     '_player-num',  # プレイヤー数
+     '_alive-players', # プレイ中のプレイヤー番号
+     '_player-{n}_score',  # プレイヤーnのスコア。nはプレイヤー番号
+     '_player-{n}_type',   # プレイヤーnの種別 =human/randomのいずれか
+     '_turn-order',    # ターンの行動順
+     '_turn-p.-no',    # ターンプレイヤーのプレイヤー番号
+     '_prev-p.-no',    # 前プレイヤーのプレイヤー番号
+     '_next-p.-no',    # 次プレイヤーのプレイヤー番号
+     '_err-message', # 発生したエラーメッセージ
   ]
   
   CONTEXT_INDEX = '_context'
@@ -177,13 +177,13 @@ class PlayData(DataFrame):
   """
   def get_highest(self, order=None, top=None):
     if order is None:
-      order = list(self.get_context('alive-players'))
+      order = list(self.get_context('_alive-players'))
     ordered = self._reorder_from(top, order)
 
     pn = None
     highest = 0
     for od in ordered:
-      score = self.get_context('player-{n}_score'.format(n=od))
+      score = self.get_context('_player-{n}_score'.format(n=od))
       #print 'od:', od, ', score:', score, ', pn:', pn, ', highest:', highest # debug
       if score > highest:
         pn, highest = od, score
@@ -220,25 +220,25 @@ class PlayData(DataFrame):
   レベルを1段深くする
   """
   def push_level(self):
-    level = list(self.get_context('level'))
-    level_step = self.get_context('level-step')
+    level = list(self.get_context('_level'))
+    level_step = self.get_context('_level-step')
     if np.isnan(level_step):
       level_step = 0
 
     level.append(level_step)
-    self.set_context('level', level)
-    self.set_context('level-step', 0)
+    self.set_context('_level', level)
+    self.set_context('_level-step', 0)
     #print 'pushed level:', level, ', level-step:', 0
 
   """
   レベルを1段浅くする
   """
   def pull_level(self):
-    level = list(self.get_context('level'))
+    level = list(self.get_context('_level'))
     level_step = level.pop()
 
-    self.set_context('level', level)
-    self.set_context('level-step', level_step)
+    self.set_context('_level', level)
+    self.set_context('_level-step', level_step)
     #print 'pulled level:', level, ', level-step:', level_step
 
   """
@@ -253,13 +253,13 @@ class PlayData(DataFrame):
     formatter = EFormatter()
     
     if '{n}' in arg:
-      resolved = [formatter.format(arg, n=self.get_context('turn-p.-no'))]
+      resolved = [formatter.format(arg, n=self.get_context('_turn-p.-no'))]
     elif '{tn}' in arg:
-      resolved = [formatter.format(arg, tn=self.get_context('turn-p.-no'))]
+      resolved = [formatter.format(arg, tn=self.get_context('_turn-p.-no'))]
     elif '{pn}' in arg:
-      resolved = [formatter.format(arg, pn=self.get_context('prev-p.-no'))]
+      resolved = [formatter.format(arg, pn=self.get_context('_prev-p.-no'))]
     elif '{nn}' in arg:
-      resolved = [formatter.format(arg, nn=self.get_context('next-p.-no'))]
+      resolved = [formatter.format(arg, nn=self.get_context('_next-p.-no'))]
 
     #print ' -> resolved:', resolved # debug
     return resolved

@@ -43,8 +43,8 @@ def get_csvfilename(data, suffix=''):
   filename = '{DIR}{sep}data_{play:0>6}_{step:0>8}{suffix}.csv'.format(
     DIR=PLAYDATA_DIR,
     sep=os.sep,
-    play=int(data.get_context('play')),
-    step=int(data.get_context('step')),
+    play=int(data.get_context('_play')),
+    step=int(data.get_context('_step')),
     suffix=suffix)
   return filename
 
@@ -98,9 +98,9 @@ _LEVEL_PHASE = 3
 レベルパスを取得する
 """
 def get_levelpath(data):
-  level = list(data.get_context('level'))
+  level = list(data.get_context('_level'))
   try:
-    lvstep = int(data.get_context('level-step'))
+    lvstep = int(data.get_context('_level-step'))
   except ValueError: # NaN
     lvstep = ''
   #print 'level:', level, 'lvstep:', lvstep # debug
@@ -110,21 +110,21 @@ def get_levelpath(data):
 
   if len(level) >= _LEVEL_ROUND:
     if len(level) == _LEVEL_ROUND:
-      path = '/round:{0}_{1}'.format(data.get_context('round'), lvstep)
+      path = '/round:{0}_{1}'.format(data.get_context('_round'), lvstep)
     else:
-      path = '/round:{0}'.format(data.get_context('round'))
+      path = '/round:{0}'.format(data.get_context('_round'))
 
   if len(level) >= _LEVEL_TURN:
     if len(level) == _LEVEL_TURN:
-      path += '/turn:{0}_{1}'.format(data.get_context('turn'), lvstep)
+      path += '/turn:{0}_{1}'.format(data.get_context('_turn'), lvstep)
     else:
-      path += '/turn:{0}'.format(data.get_context('turn'))
+      path += '/turn:{0}'.format(data.get_context('_turn'))
 
   if len(level) >= _LEVEL_PHASE:
     if len(level) >= _LEVEL_PHASE:
-      path += '/phase:{0}_{1}'.format(data.get_context('phase'), lvstep)
+      path += '/phase:{0}_{1}'.format(data.get_context('_phase'), lvstep)
     else:
-      path += '/phase:{0}'.format(data.get_context('phase'))
+      path += '/phase:{0}'.format(data.get_context('_phase'))
   
   #print 'path:', path # debug
   return path
@@ -153,12 +153,12 @@ for play in range(1, play_num + 1):
   data.set_scope(game)
   
   data.init_context(game)
-  data.set_context('play', play)
-  data.set_context('player-num', player_num)
-  data.set_context('alive-players', range(1, player_num + 1))
-  data.set_context('status', 'setup')
-  data.set_context('level', '')
-  data.set_context('level-path', '/')
+  data.set_context('_play', play)
+  data.set_context('_player-num', player_num)
+  data.set_context('_alive-players', range(1, player_num + 1))
+  data.set_context('_status', 'setup')
+  data.set_context('_level', '')
+  data.set_context('_level-path', '/')
   #print data # debug
   
   print '\n[setup]'
@@ -174,20 +174,20 @@ for play in range(1, play_num + 1):
       getattr(common, command_0)(data, args)
     else:
       getattr(game, command[0])(data, args)
-  data.set_context('status', 'on_play')
+  data.set_context('_status', 'on_play')
 
   print '\n[on_play]'
-  data.set_context('step', 1)
-  data.set_context('err-message', 'Over STEP_GUARD')
-  while ((data.get_context('step') < STEP_GUARD)
-    & (data.get_context('status') == 'on_play')):
-    step = data.get_context('step')
+  data.set_context('_step', 1)
+  data.set_context('_err-message', 'Over STEP_GUARD')
+  while ((data.get_context('_step') < STEP_GUARD)
+    & (data.get_context('_status') == 'on_play')):
+    step = data.get_context('_step')
     #print 'step:', step # debug
     
     for command in game.on_play:
-      #print 'match?->', command[0], data.get_context('level-path') # debug
+      #print 'match?->', command[0], data.get_context('_level-path') # debug
       
-      matching = re.match('^' + command[0] + '$', data.get_context('level-path'))
+      matching = re.match('^' + command[0] + '$', data.get_context('_level-path'))
       if matching is None:
         #print ' ->continue' # debug
         continue
@@ -222,14 +222,14 @@ for play in range(1, play_num + 1):
       data.to_csv(get_csvfilename(data))
 
       if game.is_end(data):
-        data.set_context('status', 'on_ending')
-        data.set_context('err-message', '') # successed
+        data.set_context('_status', 'on_ending')
+        data.set_context('_err-message', '') # successed
       
       break
 
-    data.set_context('level-path', get_levelpath(data))
-    data.increment_context('level-step')
-    data.increment_context('step')
+    data.set_context('_level-path', get_levelpath(data))
+    data.increment_context('_level-step')
+    data.increment_context('_step')
     print
         
   print '\n[on_ending]'
