@@ -38,6 +38,7 @@ PLAYDATA_DIR = DATA_DIR + "{sep}play".format(sep=os.sep)
 
 """
 CSVファイル名を取得する
+@see makelearning.py get_play()
 """
 def get_csvfilename(data, suffix=''):
   filename = '{DIR}{sep}data_{play:0>6}_{step:0>8}{suffix}.csv'.format(

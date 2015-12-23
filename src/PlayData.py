@@ -152,6 +152,17 @@ class PlayData(DataFrame):
   """
   def get_context(self, key):
     return self.ix[key, self.CONTEXT_INDEX]
+  
+  """
+  コンテキストの値を整数として取得する
+  """
+  def get_context_as_int(self, key):
+    value = None
+    try:
+      value = int(float(self.get_context(key)))
+    except ValueError:
+      pass
+    return value
 
   """
   リスト内の要素を、指定された値を先頭にして並べ替える
@@ -373,6 +384,44 @@ class PlayData(DataFrame):
       else:
         return ''
 
+  """
+  ターンプレイヤーから見た相対的なフィールド表記に変更する
+  """
+  def as_player(self):
+    copied = PlayData(self.copy())
+    
+    replacemap = {}
+    player_num = copied.get_context_as_int('_player-num')
+    tpno = copied.get_context_as_int('_turn-p.-no')
+    ppno = copied.get_context_as_int('_prev-p.-no')
+    npno = copied.get_context_as_int('_next-p.-no')
+    for i in range(player_num):
+      pno = i + 1
+      key = 'player-{n}'.format(n=pno)
+      if pno == tpno:
+        replace = 'turn-player'
+      elif pno == ppno:
+        replace = 'prev-player'
+      elif pno == npno:
+        replace = 'next-player'
+      else:
+        replace = 'other-player'
+
+      replacemap[key] = replace
+
+    fields = []
+    for field in copied.index:
+      matched = re.match(r'(player-[0-9]+)', field)
+      if matched:
+        key = matched.group(1)
+        fields.append(field.replace(key, replacemap[key]))
+      else:
+        fields.append(field)
+
+    copied.index = fields
+    return copied
+    
+
   # 以下、主に学習データ作成用の関数
 
   def _pack_key(self, self_keys, keys, axis):
@@ -388,10 +437,13 @@ class PlayData(DataFrame):
           pdata.drop(key, axis=axis, inplace=True)
         elif (sub in keys):
           if sub in pkeys:
-            if axis == 0:
-              pdata.ix[key_] = pdata.ix[key_].add(pdata.ix[key])
-            elif axis == 1:
-              pdata[key_] = pdata[key_].add(pdata[key])
+            try:
+              if axis == 0:
+                pdata.ix[key_] = pdata.ix[key_].add(pdata.ix[key])
+              elif axis == 1:
+                pdata[key_] = pdata[key_].add(pdata[key])
+            except TypeError:
+              print '[DEBUG] axis:', axis, ', key_:', key_, ', key:', key
             pdata.drop(key, axis=axis, inplace=True)
           else:
             key_ = sub
@@ -413,7 +465,7 @@ class PlayData(DataFrame):
     pindex, p1data = self._pack_key(self.index, fields, 0)
     pcolumns, p2data = p1data._pack_key(p1data.columns, components, 1)
 
-    packed = DataFrame(data=p2data)
+    packed = PlayData(DataFrame(data=p2data))
     return packed
 
 

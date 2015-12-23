@@ -91,6 +91,7 @@ context = [
 ゲームの種類
 """
 type = "to_win" # 勝ち抜け
+# type = "to_lose" # 負け抜け
 
 """
 ルール定義
