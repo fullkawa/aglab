@@ -3,6 +3,7 @@
 
 # Aglab
 data/*/*.csv
+src/data/events.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
