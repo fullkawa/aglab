@@ -20,13 +20,16 @@ import re
 from PlayData import PlayData
 
 # データディレクトリ
-DATA_DIR = os.path.join("..", "data")
+DATA_DIR = os.path.join('..', 'data')
 
 # プレイデータディレクトリ
-PLAYDATA_DIR = os.path.join(DATA_DIR, "play")
+PLAYDATA_DIR = os.path.join(DATA_DIR, 'play')
 
-# 機械学習データディレクトリ
-SVDATA_DIR = os.path.join(DATA_DIR, "supervisor")
+# 学習データディレクトリ
+SVDATA_DIR = os.path.join(DATA_DIR, 'supervisor')
+
+# 学習データファイル
+SVDATA_FILE = os.path.join(SVDATA_DIR, 'data.csv')
 
 """
 CSVファイル名からプレイ番号を取得する
@@ -79,7 +82,6 @@ for file in files:
   #print 'file:', file # debugdata_000001
   play = get_play(file)
   filepath = os.path.join(PLAYDATA_DIR, file)
-  outputpath = os.path.join(SVDATA_DIR, 'data_{0:0>6}.csv'.format(play))
   try:
     eval = evals[play]
     if '_tp' in file:
@@ -90,8 +92,7 @@ for file in files:
       
       converted = convert(data)
       converted = pd.concat([converted, PlayData(np.array([[score]]))], axis=1)
-      print 'output ->', outputpath # debug
-      converted.to_csv(outputpath, header=False, index=False, mode='a')
+      converted.to_csv(SVDATA_FILE, header=False, index=False, mode='a')
       print 'step:', step, ', converted:', converted # debug
     
   except KeyError:
