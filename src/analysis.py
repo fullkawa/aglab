@@ -68,8 +68,8 @@ with tf.Graph().as_default():
     score_placeholder: test_scores
   }
 
-  W = tf.Variable(tf.zeros([DATA_NUM, 1]), name='w1')
-  b = tf.Variable(tf.zeros([1]), name='b1')
+  W = tf.Variable(tf.ones([DATA_NUM, 1]), name='w1')
+  b = tf.Variable(tf.ones([1]), name='b1')
 
   output_ = inference(param_placeholder, W, b)
   loss_ = loss(output_, score_placeholder)
@@ -83,16 +83,16 @@ with tf.Graph().as_default():
     
     best_loss = float('inf')
     for step in range(10000):
+      loss_train = sess.run(loss_, feed_dict=feed_dict_train)
       sess.run(training_op, feed_dict=feed_dict_train)
-      loss_test = sess.run(loss_, feed_dict=feed_dict_test)
-      if loss_test < best_loss:
-        best_loss = loss_test
+      if loss_train < best_loss:
+        best_loss = loss_train
         best_match = sess.run(output_, feed_dict=feed_dict_test)
-      if step % 100 == 0:
+      if step % 500 == 0:
         summary_str = sess.run(summary_op, feed_dict=feed_dict_train)
         #summary_str += sess.run(summary_op, feed_dict=feed_dict_test)
         summary_writer.add_summary(summary_str, step)
-        print 'loss_test:', loss_test, ', best_loss:', best_loss
+        print 'loss_train:', loss_train, ', best_loss:', best_loss
 
     print 'w1:', sess.run(W), ', b1:', sess.run(b)
     print 'best_match:', best_match
