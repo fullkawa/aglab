@@ -17,6 +17,13 @@ num_players = {
     'max':  4}
 
 """コンテキスト定義
+    * キー: コンテキストのキー。"$"で始めること。
+        [設定項目]
+        - desc:  説明文
+        - size:  サイズ。省略時は`size:1`
+        * scope: 情報公開範囲
+        - value: 初期値。省略時はNaNが初期値となる
+    凡例) *=必須, -=任意
 """
 contexts = common.contexts
 util.dict_merge(contexts, {
@@ -26,6 +33,13 @@ util.dict_merge(contexts, {
         'value':1}})
 
 """コンポーネント定義
+    * キー: コンポーネントのキー
+        [設定項目] "_"で始まる項目はプロパティとして扱われます。
+        - name: 項目名
+        * str:  表示文字
+        - num:  数量。省略時は`num:1`
+        * _placed: 配置場所
+    凡例) *=必須, -=任意
 """
 components = {
     'C1':{
@@ -42,6 +56,14 @@ components = {
             'type':'stochastic'}}}
 
 """フィールド定義
+    * キー: フィールドのキー
+        [設定項目]
+        - name: 項目名
+        - size: サイズ。コンポーネントを配置できる数。省略時は`size:1`
+        - shorten: 短縮表記
+        * distinguishable: 区別可能性
+        * scope: 情報公開範囲
+    凡例) *=必須, -=任意
 """
 fields = {
     'field-1':{

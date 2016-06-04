@@ -39,14 +39,14 @@ def set_deck(state, args, **kwargs):
     """
     #print 'components:', state.components #DEBUG
     for component in state.components:
-        pos = state.get_context('$deck-pointer')
+        pos = state.get_context('$deck-count')
         args = [
             component['key'],
             component['index'],
             'deck',
             pos]
         set(state, args)
-        state.set_context('$deck-pointer', pos+1)
+        state.set_context('$deck-count', pos+1)
 
 def shuffle(state, args, **kwargs):
     """対象フィールド内のコンポーネントをシャッフルする
