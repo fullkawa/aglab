@@ -10,7 +10,7 @@ aglabは自作アナログゲーム(ボードゲーム、カードゲームな�
 * [セットアップ](README.md#セットアップ)
 * [使い方](README.md#使い方)
  * [定義ファイル作成](README.md#定義ファイル作成)
- * [Jupyterでのテストプレイ](README.md#Jupyterでのテストプレイ)
+ * [Jupyterでのテストプレイ](README.md#jupyterでのテストプレイ)
 * [利用上の注意](README.md#利用上の注意)
 * [プロジェクトへの貢献](README.md#プロジェクトへの貢献)
  * [非開発者向け](README.md#非開発者向け)
