@@ -7,7 +7,7 @@ import re
 import string
 from pandas.core.index import MultiIndex
 
-import util
+from src import util
 
 class Game(object):
     """ゲーム

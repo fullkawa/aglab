@@ -2,7 +2,7 @@
 
 import numpy as np
 
-import util
+from src import util
 
 """共通ゲーム定義ファイル
 """

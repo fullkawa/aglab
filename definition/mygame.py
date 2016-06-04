@@ -4,7 +4,7 @@
 """
 
 from module import common
-import util
+from src import util
 
 """ゲームタイトル
 """
