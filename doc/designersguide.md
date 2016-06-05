@@ -6,11 +6,11 @@
 
 * [想定する読者](designersguide.md#想定する読者)
 * [aglabの大原則](designersguide.md#aglabの大原則)
-* [コンポーネント(components)](designersguide.md#コンポーネント(components))
+* [コンポーネント(components)](designersguide.md#コンポーネントcomponents)
  * [基本プロパティ](designersguide.md#基本プロパティ)
- * [フィールド(fields)](designersguide.md#フィールド(fields))
+ * [フィールド(fields)](designersguide.md#フィールドfields)
  * [コンポーネントの設定項目](designersguide.md#コンポーネントの設定項目)
-* [コンテキスト(contexts)](designersguide.md#コンテキスト(contexts))
+* [コンテキスト(contexts)](designersguide.md#コンテキストcontexts)
  * [数字への変換](designersguide.md#数字への変換)
  * [コンテキストの設定項目](designersguide.md#コンテキストの設定項目)
  * [キューとスタック](designersguide.md#キューとスタック)
@@ -180,7 +180,7 @@ aglabでは、コンポーネントの「プロパティ」という形でゲー
 コンテキストに`size`を定義すると、配列のように使うことができます。
 ただし、サイズをプレイ中に動的に変更することはできませんので、十分に大きいサイズを設定するようにしてください。  
 
-`scope`には[フィールド](designersguide.md#フィールド(fields))のそれと同じ値を設定することができ、意味も同じです。  
+`scope`には[フィールド](designersguide.md#フィールドfields)のそれと同じ値を設定することができ、意味も同じです。  
 
 `value`はプレイ開始時の初期値を設定します。
 
