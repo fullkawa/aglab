@@ -55,7 +55,7 @@ class Game(object):
         if hasattr(definition, 'output_contextpath'):
             self.output_contextpath = definition.output_contextpath
         
-        self.output_state = None
+        self.output_state = self.state.output
         if hasattr(definition, 'output_state'):
             self.output_state = definition.output_state
         
@@ -165,11 +165,9 @@ class Game(object):
         return self.state.get_header()
         
     def get_state(self, player=None):
-        """ゲームの状態を取得する
+        """ゲームの状態を配列(≒ベクトル)で取得する
         """
-        if self.output_state is not None:
-            return self.output_state(self.state, player=player)
-        return self.state.data
+        return self.state.to_array()
     
     def get_obs_header(self):
         """観察結果のヘッダを取得する
@@ -177,9 +175,9 @@ class Game(object):
         return self.observation.get_header()
     
     def get_observation(self, observer=None):
-        """ゲームの観察結果を取得する
+        """ゲームの観察結果を配列(≒ベクトル)で取得する
         """
-        return self.observation
+        return self.observation.to_array()
     
     def get_prompt(self):
         """プレイヤー入力
@@ -577,6 +575,17 @@ class State(object):
         for field in fields:
             _output = self.output_component(fkey=fkey, findex=field['index'])
             output.append(_output)
+        return output
+    
+    def output(self, player=None):
+        """デフォルトの文字列表現を取得する
+        """
+        outdict = {}
+        for field in self.fields:
+            outdict[field['shorten']] = self.output_components(field['key'])
+        output = ''
+        for key in sorted(outdict):
+            output += '{key}: {value}{br}'.format(key=key, value=outdict[key], br=os.linesep)
         return output
 
 class Observation(object):
