@@ -157,7 +157,7 @@ class Game(object):
         """
         if self.output_contextpath is not None:
             return self.output_contextpath(self.state)
-        return '//'
+        return '*** No def output_contextpath(state)'
         
     def get_header(self):
         """(状態の)ヘッダを取得する

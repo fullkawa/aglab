@@ -13,7 +13,7 @@ contexts = {
     '$player-num':{
         'desc': 'プレイ人数',
         'scope':'public'},
-    '$player-name':{
+    '$player':{
         'desc': 'アクションを行うプレイヤー名(player-1/2/3/4)',
         'scope':'public'}}
 
