@@ -55,9 +55,15 @@ class Game(object):
         if hasattr(definition, 'output_contextpath'):
             self.output_contextpath = definition.output_contextpath
         
-        self.output_state = self.state.output
+        self._output_state = None
         if hasattr(definition, 'output_state'):
-            self.output_state = definition.output_state
+            self._output_state = definition.output_state
+        
+    def output_state(self, player=None):
+        output = self.state.output(player)
+        if self._output_state is not None:
+            output = self._output_state(self.state, output, player=player)
+        return output
         
     def _build_procs(self, def_procs):
         """ゲーム定義から処理を生成する
@@ -209,7 +215,7 @@ class Game(object):
         #print 'proc:', proc #DEBUG
         if len(proc) > 0:
             if len(cmds) > 1:
-                proc[0]['args'] = cmds[1]
+                proc[0]['args'] = cmds[1:]
             self._process(proc)
         elif 'move' == cmds[0]:
             assert len(cmds) == 3
@@ -579,6 +585,7 @@ class State(object):
     
     def output(self, player=None):
         """デフォルトの文字列表現を取得する
+        ゲーム定義ファイルに`def output_state(state, player=None)`を定義することで、本処理を上書きすることができる。
         """
         outdict = {}
         for field in self.fields:

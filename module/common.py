@@ -52,8 +52,8 @@ def shuffle(state, args, **kwargs):
     """対象フィールド内のコンポーネントをシャッフルする
     @param arg: string 対象フィールドのキー
     """
-    assert isinstance(args, str)
-    fkey = args
+    assert isinstance(args[0], str)
+    fkey = args[0]
     
     pointer = int(state.get_context('${0}-pointer'.format(fkey)))
     indexes = range(pointer)
@@ -84,7 +84,7 @@ def case(state, args, **kwargs):
 
 def set_turn_order(state, args, **kwargs):
     """プレイヤーの行動順を設定する
-    @param args: int/str argsがNoneの場合、数字1つの場合はプレイヤー人数とみなす。  
+    @param args: list/int/str argsがNoneの場合、数字1つの場合はプレイヤー人数とみなす。  
         カンマで連結された文字列であれば行動順を示すプレイヤー番号とみなす。
     """
     turn_order = state.get_context('$turn-order')
@@ -101,13 +101,14 @@ def set_turn_order(state, args, **kwargs):
         #print '_order:', _order #DEBUG
         for i in range(len(_order)):
             turn_order[i] = _order[i]
-    
+    else:
+        print '[WARN] Illegal args:', args
     #print 'turn_order:', turn_order #DEBUG
     state.set_context('$turn-order', turn_order)
 
 def turn_start(state, args, **kwargs):
     """ターン開始処理
-    @param args: str argsがあるとき、それを手番順(turn_order)としてセットする
+    @param args: list/str argsがあるとき、それを手番順(turn_order)としてセットする
     """
     if args is not None:
         set_turn_order(state, args)
@@ -140,12 +141,11 @@ def turn_start(state, args, **kwargs):
 
 def turn_end(state, args, **kwargs):
     """ターン終了処理
-    @param args: int/str argsがあるとき、それを手番順(turn_order)の最後にセットする
+    @param args: list/int/str argsがあるとき、それを手番順(turn_order)の最後にセットする
     """
-    turn = state.get_context('$turn-no')
     turn_order = state.get_context('$turn-order')
-    if args is not None:
-        util.append_value(turn_order, int(args))
+    if isinstance(args, list) and len(args) > 0:
+        util.append_value(turn_order, int(args[0]))
         state.set_context('$turn-order', turn_order)
 
 

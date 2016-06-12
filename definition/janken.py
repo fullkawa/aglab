@@ -18,6 +18,7 @@
 """
 
 import numpy as np
+import os
 
 from module import common
 from src import util
@@ -65,7 +66,23 @@ util.dict_merge(contexts, {
     '$next-player':{
         'desc': '次プレイヤーのプレイヤー番号',
         'size': 2,
-        'scope':'public'}})
+        'scope':'public'},
+    '$player-1_score':{
+        'desc': 'プレイヤー1の得点',
+        'scope':'public',
+        'value': 0},
+    '$player-2_score':{
+        'desc': 'プレイヤー2の得点',
+        'scope':'public',
+        'value': 0},
+    '$player-3_score':{
+        'desc': 'プレイヤー3の得点',
+        'scope':'public',
+        'value': 0},
+    '$player-4_score':{
+        'desc': 'プレイヤー4の得点',
+        'scope':'public',
+        'value': 0}})
 
 """コンポーネント定義
     * キー: コンポーネントのキー
@@ -174,7 +191,8 @@ on_setup = [
 """
 on_play = [
   ['.*/', 'common.turn_start'],
-  ['.*/turn:[0-9]*.*', 'common.turn_end']]
+  ['.*/turn:[0-9]*.*', 'common.turn_end'],
+  ['.*', 'add_score']]
 
 """ゲーム終了条件
 """
@@ -212,7 +230,19 @@ def output_contextpath(state):
         path += '?' + qs
     return path
 
-def init_hand(state, *args, **kwargs):
+def output_state(state, output, player=None):
+    """文字列表現のカスタマイズ
+    @param self: Game
+    """
+    score_section = '[score]'
+    for i in range(num_players['max']):
+        score = int(state.get_context('$player-{0}_score'.format(i+1)))
+        score_section += ' player-{0}:{1},'.format(i+1, score)
+    #print 'score_section:', score_section #DEBUG
+    output += str.rstrip(score_section) + os.linesep
+    return output
+
+def init_hand(state, args, **kwargs):
     """手札を初期配置する
     """
     player_num = int(state.get_context('$player-num'))
@@ -224,3 +254,16 @@ def init_hand(state, *args, **kwargs):
                 cindex = n * card_num + i
                 state.set_component((ckey, cindex), (fkey, findex))
                 findex += 1
+
+def add_score(state, args, **kwargs):
+    """得点を加算する
+    @param args[0]: 得点
+    @param args[1]: 加算対象プレイヤー番号
+    """
+    assert len(args) == 2
+    score = int(args[0])
+    player = int(args[1])
+    
+    key = '$player-{0}_score'.format(player)
+    state.set_context(key, state.get_context(key) + score)
+
