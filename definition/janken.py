@@ -17,6 +17,8 @@
 @author: fullkawa
 """
 
+import numpy as np
+
 from module import common
 from src import util
 
@@ -120,7 +122,7 @@ fields = {
         'size': 3 * card_num,
         'shorten':'P1.p',
         'distinguishable': True,
-        'scope':'private'},
+        'scope':'public'},
     'player-2_hand':{
         'name': 'プレイヤー2の手札',
         'size': 3 * card_num,
@@ -132,7 +134,7 @@ fields = {
         'size': 3 * card_num,
         'shorten':'P2.p',
         'distinguishable': True,
-        'scope':'private'},
+        'scope':'public'},
     'player-3_hand':{
         'name': 'プレイヤー3の手札',
         'size': 3 * card_num,
@@ -144,7 +146,7 @@ fields = {
         'size': 3 * card_num,
         'shorten':'P3.p',
         'distinguishable': True,
-        'scope':'private'},
+        'scope':'public'},
     'player-4_hand':{
         'name': 'プレイヤー4の手札',
         'size': 3 * card_num,
@@ -156,7 +158,7 @@ fields = {
         'size': 3 * card_num,
         'shorten':'P4.p',
         'distinguishable': True,
-        'scope':'private'}}
+        'scope':'public'}}
 
 """
 ルール定義
@@ -164,11 +166,15 @@ fields = {
 
 """プレイ前の準備(ゲーム開始時処理)
 """
-#on_setup = []
+on_setup = [
+    ['/setup:1', 'common.set_turn_order'],
+    ['/setup:2', 'init_hand']]
 
 """プレイの流れ(ゲーム内処理)
 """
-#on_play = []
+on_play = [
+  ['.*/', 'common.turn_start'],
+  ['.*/turn:[0-9]*.*', 'common.turn_end']]
 
 """ゲーム終了条件
 """
@@ -179,3 +185,42 @@ fields = {
 """
 #on_ending = []
 
+
+
+def output_contextpath(state):
+    """コンテキストパスを取得する
+    コンテキストパスとはプレイの状況(≠状態)をURLに似た階層構造で表現したものである。
+    """
+    path = '//'
+    turn = state.get_context('$turn-no')
+    if turn > 0:
+        path += util.build_urlpath([('turn', str(int(turn)))])
+    
+    qslist = []
+    tp = state.get_context('$turn-player')
+    if not np.isnan(tp):
+        qslist.append(('turn', str(int(tp))))
+    pp = state.get_context('$prev-player')
+    if not np.isnan(pp):
+        qslist.append(('prev', str(int(pp))))
+    nps = state.get_context('$next-player')
+    for _np in nps:
+        if not np.isnan(_np):
+            qslist.append(('next', str(int(_np))))
+    qs = util.build_urlqs(qslist)
+    if len(qs) > 0:
+        path += '?' + qs
+    return path
+
+def init_hand(state, *args, **kwargs):
+    """手札を初期配置する
+    """
+    player_num = int(state.get_context('$player-num'))
+    for n in range(player_num):
+        fkey = 'player-{0}_hand'.format(n+1)
+        findex = 0
+        for ckey, cdef in components.iteritems():
+            for i in range(card_num):
+                cindex = n * card_num + i
+                state.set_component((ckey, cindex), (fkey, findex))
+                findex += 1
