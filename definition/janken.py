@@ -32,6 +32,10 @@ title = 'じゃんけんカードゲーム'
 """
 card_num = 2;
 
+"""パラメータ：勝利条件(獲得得点)
+"""
+winner_score = 5;
+
 """プレイ人数(最小〜最大)
 """
 num_players = {
@@ -191,13 +195,25 @@ on_setup = [
 """
 on_play = [
   ['.*/', 'common.turn_start'],
-  ['.*/turn:[0-9]*.*', 'common.turn_end'],
-  ['.*', 'add_score']]
+  ['.*/turn:[0-9]*.*', 'add_score'],
+  ['.*/turn:[0-9]*.*', 'common.turn_end']]
 
 """ゲーム終了条件
 """
-#def is_end(state):
-#    return True    
+def is_end(state):
+    turn_no = int(state.get_context('$turn-no'))
+    turn_index = turn_no - 1
+    #print 'turn_no:', turn_no #DEBUG
+    turn_order = state.get_context('$turn-order')
+    for i in range(turn_index, len(turn_order)):
+        if np.isnan(turn_order[i]):
+            break
+        player = int(turn_order[i])
+        score = state.get_context('$player-{0}_score'.format(player))
+        if score >= winner_score:
+            print os.linesep, 'player-{0} win!'.format(player)
+            return True
+    return False
     
 """ゲーム終了(ゲーム終了時処理)
 """
