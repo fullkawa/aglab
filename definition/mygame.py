@@ -36,7 +36,8 @@ util.dict_merge(contexts, {
     * キー: コンポーネントのキー
         [設定項目] "_"で始まる項目はプロパティとして扱われます。
         - name: 項目名
-        * str:  表示文字
+        * str:  公開状態(カードがオープンされたとき等)の表示文字
+        * rstr: 非公開状態(カードが裏向きのとき等)での表示文字
         - num:  数量。省略時は`num:1`
         * _placed: 配置場所
     凡例) *=必須, -=任意
@@ -45,12 +46,14 @@ components = {
     'C1':{
         'name': 'カード1',
         'str':  '1',
+        'rstr': '#',
         'num':  1,
         '_placed':{
             'type':'stochastic'}},
     'C2':{
         'name': 'カード2',
         'str':  '2',
+        'rstr': '#',
         'num':  3,
         '_placed':{
             'type':'stochastic'}}}

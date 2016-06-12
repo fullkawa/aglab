@@ -131,7 +131,9 @@ class Game(object):
         
     def _process(self, procs, contextpath=None, act=None, visualize=None, report=None):
         """定義された処理を実行する
-        これにより、ゲームのコンテキスト、状態が変化する。
+        これにより、ゲームの状態が変化する。
+        @param procs: list    実行したい処理のリスト。リストの先頭が最も優先順位が高い。
+        @param contextpath: str コンテキストパスが渡されたとき、procsのうちそれにマッチしたものだけが実行される。
         """
         for proc in procs:
             if contextpath is not None:
@@ -370,6 +372,10 @@ class State(object):
                     _component['str'] = component['str']
                 else:
                     _component['str'] = key
+                if 'rstr' in component:
+                    _component['rstr'] = component['rstr']
+                else:
+                    _component['rstr'] = key
                 self.components.append(_component)
             for propkey, property in component.iteritems():
                 if propkey.find('_') != 0:
@@ -546,12 +552,16 @@ class State(object):
         if field is not None:
             fkey, findex = util.get_key_and_index(field)
         slicer = self.get_islicer(propname='_placed', fkey=fkey, findex=findex)
-        rows = self.data.loc[slicer, 'value']
-        #print 'rows:', rows #DEBUG
-        for indexes, value in rows.iteritems():
-            if value > 0:
-                ckey = indexes[0]
-                _str = util.dict_value(self.components, 'str', search=('key', ckey))
+        unknown = self.data.loc[slicer, 'unknown'][0]
+        #print 'unknown:', unknown #DEBUG
+        value = self.data.loc[slicer, 'value']
+        #print 'value:', value #DEBUG
+        for _key, _value in value.iteritems():
+            #print '_key:', _key, ', _value:', _value #DEBUG
+            if _value > 0:
+                ckey = _key[0]
+                str_key = 'rstr' if unknown == 1 else 'str'
+                _str = util.dict_value(self.components, str_key, search=('key', ckey))
                 strs.append(_str)
         strs = np.unique(strs)
         #print 'strs:', strs, ', len=', len(strs) #DEBUG

@@ -200,7 +200,7 @@ C2           0      _placed  F1              0.0    hidden         1    NaN
             math.isnan(state.get_value(component=('C2', 0), field=('F1', 0))))
         
     def test_output_component_case1(self):
-        """Case1: プレイヤー指定なし(DEBUG)
+        """Case1: プレイヤー指定なし(DEBUG); 非公開状態
         """
         state = self.state
         output = state.output_component(field=('F1', 0))
@@ -208,14 +208,29 @@ C2           0      _placed  F1              0.0    hidden         1    NaN
         
         state.set_component('C1', ('F1', 1))
         output = state.output_component(field=('F1', 1))
-        self.assertEqual('1', output)
+        self.assertEqual('#', output)
         
         state.set_component(('C2', 1), ('F1', 2))
         output = state.output_component(field=('F1', 2))
+        self.assertEqual('#', output)
+        
+    def test_output_component_case2(self):
+        """Case1: プレイヤー指定なし(DEBUG); 公開状態
+        """
+        state = self.state
+        output = state.output_component(field=('F2', 0))
+        self.assertEqual(' ', output)
+        
+        state.set_component('C1', ('F2', 1))
+        output = state.output_component(field=('F2', 1))
+        self.assertEqual('1', output)
+        
+        state.set_component(('C2', 1), ('F2', 2))
+        output = state.output_component(field=('F2', 2))
         self.assertEqual('2', output)
         
     def test_output_components_case1(self):
-        """Case1: プレイヤー指定なし(DEBUG)
+        """Case1: プレイヤー指定なし(DEBUG); 非公開状態
         """
         state = self.state
         output = state.output_components(fkey='F1')
@@ -226,6 +241,24 @@ C2           0      _placed  F1              0.0    hidden         1    NaN
         state.set_component('C1', ('F1', 1))
         state.set_component(('C2', 1), ('F1', 2))
         output = state.output_components(fkey='F1')
+        self.assertEqual(4, len(output))
+        self.assertEqual(' ', output[0])
+        self.assertEqual('#', output[1])
+        self.assertEqual('#', output[2])
+        self.assertEqual(' ', output[3])
+        
+    def test_output_components_case2(self):
+        """Case2: プレイヤー指定なし(DEBUG); 公開状態
+        """
+        state = self.state
+        output = state.output_components(fkey='F2')
+        self.assertEqual(4, len(output))
+        self.assertEqual(' ', output[0])
+        self.assertEqual(' ', output[3])
+        
+        state.set_component('C1', ('F2', 1))
+        state.set_component(('C2', 1), ('F2', 2))
+        output = state.output_components(fkey='F2')
         self.assertEqual(4, len(output))
         self.assertEqual(' ', output[0])
         self.assertEqual('1', output[1])

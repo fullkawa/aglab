@@ -18,12 +18,14 @@ components = {
     'C1':{
         'name': 'カード1',
         'str':  '1',
+        'rstr': '#',
         'num':  1,
         '_placed':{
             'type':'stochastic'}},
     'C2':{
         'name': 'カード2',
         'str':  '2',
+        'rstr': '#',
         'num':  3,
         '_placed':{
             'type':'stochastic'}}}
