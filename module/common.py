@@ -20,7 +20,7 @@ contexts = {
 """基本アクション
 """
 
-def set(state, args, **kwargs):
+def set(state, args, reward=None, report=None):
     """コンポーネントを指定された位置にセットする
     @param args[0]: string セットするオブジェクトのkey
     @param args[1]: int    セットするオブジェクトのindex
@@ -34,7 +34,7 @@ def set(state, args, **kwargs):
     print 'SET', args[0], args[1], 'to', args[2], args[3]
     """
 
-def set_deck(state, args, **kwargs):
+def set_deck(state, args, reward=None, report=None):
     """すべてのコンポーネントをデッキにセットする
     """
     #print 'components:', state.components #DEBUG
@@ -48,7 +48,7 @@ def set_deck(state, args, **kwargs):
         set(state, args)
         state.set_context('$deck-count', pos+1)
 
-def shuffle(state, args, **kwargs):
+def shuffle(state, args, reward=None, report=None):
     """対象フィールド内のコンポーネントをシャッフルする
     @param arg: string 対象フィールドのキー
     """
@@ -68,7 +68,7 @@ def shuffle(state, args, **kwargs):
     state.data.loc[islicer, 'value'] = shuffled.flatten()
     #print state.data.loc[islicer, 'value'].values.reshape(csize, fsize) #DEBUG
 
-def move(state, args, **kwargs):
+def move(state, args, reward=None, report=None):
     """コンポーネントを移動する
     @param args[0]: tuple 移動元フィールドのkey, index
     @param args[1]: tuple 移動先フィールドのkey, index
@@ -79,10 +79,10 @@ def move(state, args, **kwargs):
     
     state.move_component(_from, _to)
 
-def case(state, args, **kwargs):
+def case(state, args, reward=None, report=None):
     print 'TODO:case()'
 
-def set_turn_order(state, args, **kwargs):
+def set_turn_order(state, args, reward=None, report=None):
     """プレイヤーの行動順を設定する
     @param args: list/int/str argsがNoneの場合、数字1つの場合はプレイヤー人数とみなす。  
         カンマで連結された文字列であれば行動順を示すプレイヤー番号とみなす。
@@ -106,7 +106,7 @@ def set_turn_order(state, args, **kwargs):
     #print 'turn_order:', turn_order #DEBUG
     state.set_context('$turn-order', turn_order)
 
-def turn_start(state, args, **kwargs):
+def turn_start(state, args, reward=None, report=None):
     """ターン開始処理
     @param args: list/str argsがあるとき、それを手番順(turn_order)としてセットする
     """
@@ -139,7 +139,7 @@ def turn_start(state, args, **kwargs):
     state.set_context('$turn-player', turn_player)
     state.set_context('$next-player', next_player)
 
-def turn_end(state, args, **kwargs):
+def turn_end(state, args, reward=None, report=None):
     """ターン終了処理
     @param args: list/int/str argsがあるとき、それを手番順(turn_order)の最後にセットする
     """

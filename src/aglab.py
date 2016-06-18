@@ -60,6 +60,9 @@ class Game(object):
             self._output_state = definition.output_state
         
     def output_state(self, player=None):
+        """状態の文字列表現を取得する
+        TODO:リファクタリング？
+        """
         output = self.state.output(player)
         if self._output_state is not None:
             output = self._output_state(self.state, output, player=player)
@@ -119,6 +122,11 @@ class Game(object):
         """
         # 初期化
         self.step_no = 0
+        self.command = None
+        self.act = None
+        self.done = False
+        self.reward = 0
+        self.report = {}
         
         # 設定
         if params is None:
@@ -135,7 +143,7 @@ class Game(object):
         for i in range(10): # /setup:0 - 9
             self._process(self.on_setup, contextpath='/setup:{i}'.format(i=i))
         
-    def _process(self, procs, contextpath=None, act=None, visualize=None, report=None):
+    def _process(self, procs, contextpath=None, reward=None, report=None):
         """定義された処理を実行する
         これにより、ゲームの状態が変化する。
         @param procs: list    実行したい処理のリスト。リストの先頭が最も優先順位が高い。
@@ -147,14 +155,14 @@ class Game(object):
                 if matching is None:
                     continue # =skip
             print 'PROCESS:{0} {1}'.format(proc['key'], '' if (proc['args'] is None) else proc['args'])
-            proc['proc'](self.state, proc['args'], act=act, visualize=visualize, report=report)
+            proc['proc'](self.state, proc['args'], reward=reward, report=report)
             break
         
     def get_info(self):
         """プレイに関する情報を取得する
         """
         info = '[{title}]{br}'.format(title=self.definition.title, br=os.linesep)
-        info += '- {n} players'.format(n=self.num_players)
+        info += '- Player:{0} in {1} players'.format(self.state.get_context('$player'), self.num_players)
         return info
         
     def get_contextpath(self):
@@ -190,21 +198,31 @@ class Game(object):
         """
         return '? '
     
-    def step(self, command=None, report=None):
+    def step(self, command=None):
         """ゲームを1ステップ進行する
+        @param command: dict コマンド
+            コマンドが渡されたとき、そのコマンドを実行する
+            コマンドが渡されなかった場合は、条件にマッチする最初のコマンドを実行する
         """
         self.step_no += 1
         
-        done = False
-        if command is not None:
-            done = self._step_command(command)
-        if self.is_end is None:
-            return done
+        if command is None:
+            self.command, self.act = self._matched_command()
         else:
-            return (done or self.is_end(self.state))
+            self.command = command
+            self._step_command()
         
-    def _step_command(self, command):
-        cmds = string.split(command)
+        if self.is_end is not None:
+            self.done = self.done or self.is_end(self.state)
+        return
+        
+    def _matched_command(self):
+        """条件にマッチする最初のコマンドを取得する
+        """
+        print 'TODO:_matched_command()'
+        
+    def _step_command(self):
+        cmds = string.split(self.command)
         assert cmds is not None
         assert len(cmds) > 0
         
@@ -216,7 +234,7 @@ class Game(object):
         if len(proc) > 0:
             if len(cmds) > 1:
                 proc[0]['args'] = cmds[1:]
-            self._process(proc)
+            self._process(proc, reward=self.reward, report=self.report)
         elif 'move' == cmds[0]:
             assert len(cmds) == 3
             self.state.move_component(cmds[1], cmds[2])
@@ -224,12 +242,10 @@ class Game(object):
             assert len(cmds) == 3
             self.state.set_component(cmds[1], cmds[2])
         elif 'end' == cmds[0]:
-            return True
+            self.done = True
         else:
             print 'No command;', cmds
             #print 'on_play:', self.on_play #DEBUG
-        
-        return False
         
     def perform_action(self, action):
         """アクションを実行する

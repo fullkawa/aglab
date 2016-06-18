@@ -194,9 +194,13 @@ on_setup = [
 """プレイの流れ(ゲーム内処理)
 """
 on_play = [
-  ['.*/', 'common.turn_start'],
-  ['.*/turn:[0-9]*.*', 'add_score'],
-  ['.*/turn:[0-9]*.*', 'common.turn_end']]
+    ['.*/', 'common.turn_start'],
+    ['.*/turn:[0-9]*.*', 'set_card', [
+        {'ckey': 'G'},
+        {'ckey': 'T'},
+        {'ckey': 'P'}]],
+    ['.*/turn:[0-9]*.*', 'add_score'],
+    ['.*/turn:[0-9]*.*', 'common.turn_end']]
 
 """ゲーム終了条件
 """
@@ -258,7 +262,7 @@ def output_state(state, output, player=None):
     output += str.rstrip(score_section) + os.linesep
     return output
 
-def init_hand(state, args, **kwargs):
+def init_hand(state, args, reward=None, report=None):
     """手札を初期配置する
     """
     player_num = int(state.get_context('$player-num'))
@@ -271,7 +275,20 @@ def init_hand(state, args, **kwargs):
                 state.set_component((ckey, cindex), (fkey, findex))
                 findex += 1
 
-def add_score(state, args, **kwargs):
+def set_card(state, args, action=None, reward=None, report=None):
+    """手札からカードを出す
+    """
+    print 'args:', args #DEBUG
+    print 'action:', action #DEBUG
+    action_count = 3 #TODO:action_count取得
+    if action is not None:
+        common.move(state, [('$player-1_hand', action*card_num), ('$player-1_played', 0)])
+        return None
+    else:
+        return action_count
+    print 'TODO:set_card()'
+
+def add_score(state, args, reward=None, report=None):
     """得点を加算する
     @param args[0]: 得点
     @param args[1]: 加算対象プレイヤー番号
@@ -282,4 +299,7 @@ def add_score(state, args, **kwargs):
     
     key = '$player-{0}_score'.format(player)
     state.set_context(key, state.get_context(key) + score)
+    
+    if player == int(state.get_context('$player')):
+        reward += score
 
