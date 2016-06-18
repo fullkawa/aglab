@@ -265,3 +265,56 @@ C2           0      _placed  F1              0.0    hidden         1    NaN
         self.assertEqual('2', output[2])
         self.assertEqual(' ', output[3])
 
+
+class RewardTestCase(unittest.TestCase):
+    
+    def setUp(self):
+        unittest.TestCase.setUp(self)
+        print
+    
+    def testAdd_1(self):
+        reward = aglab.Reward()
+        reward.add(1)
+        
+        self.assertEqual(0, reward.rewards[0])
+        self.assertEqual(1, reward.rewards[1])
+        
+    def testAdd_2(self):
+        reward = aglab.Reward(player=2, num_players=3)
+        reward.add(1, player=1)
+        reward.add(2, player=2)
+        
+        self.assertEqual(0, reward.rewards[0])
+        self.assertEqual(1, reward.rewards[1])
+        self.assertEqual(2, reward.rewards[2])
+        self.assertEqual(0, reward.rewards[3])
+        
+    def testCollect_1(self):
+        reward = aglab.Reward()
+        r = reward.collect()
+        self.assertEqual(r, 0)
+        self.assertEqual(0, reward.rewards[0])
+        self.assertEqual(0, reward.rewards[1])
+        
+        reward.add(1)
+        r = reward.collect()
+        self.assertEqual(r, 1)
+        self.assertEqual(1, reward.rewards[0])
+        self.assertEqual(0, reward.rewards[1])
+        
+        reward.add(2)
+        r = reward.collect()
+        self.assertEqual(r, 2)
+        self.assertEqual(3, reward.rewards[0])
+        self.assertEqual(0, reward.rewards[1])
+        
+    def testCollect_2(self):
+        reward = aglab.Reward(player=2, num_players=3)
+        reward.add(1, player=1)
+        reward.add(2, player=2)
+        r = reward.collect()
+        self.assertEqual(r, 1.9)
+        self.assertEqual(1.9, reward.rewards[0])
+        self.assertEqual(0, reward.rewards[1])
+        self.assertEqual(0, reward.rewards[2])
+        

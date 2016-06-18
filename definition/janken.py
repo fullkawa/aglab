@@ -300,6 +300,6 @@ def add_score(state, args, reward=None, report=None):
     key = '$player-{0}_score'.format(player)
     state.set_context(key, state.get_context(key) + score)
     
-    if player == int(state.get_context('$player')):
-        reward += score
+    if (reward is not None) and (player == int(state.get_context('$player'))):
+        reward.add(score)
 

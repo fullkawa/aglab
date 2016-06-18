@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import operator
 import os
 import pandas as pd
 import random
@@ -101,8 +102,11 @@ class Game(object):
     def rand_params(self):
         """ランダムでプレイパラメータを取得する
         """
+        num_players = self._rand_num_players();
+        player = random.randint(1, num_players);
         params = {
-            'num_players': self._rand_num_players()}
+            'num_players':  num_players,
+            'player':       player}
         return params
         
     def _rand_num_players(self):
@@ -125,7 +129,7 @@ class Game(object):
         self.command = None
         self.act = None
         self.done = False
-        self.reward = 0
+        self.reward = Reward()
         self.report = {}
         
         # 設定
@@ -134,6 +138,7 @@ class Game(object):
         self.num_players = params['num_players']
         self.state.set_context('$player-num', self.num_players)
         self.state.set_context('$on-play-num', self.num_players)
+        self.state.set_context('$player', params['player'])
         
         if self.num_players >= 3:
             self.state.set_context('$player-3', 1)
@@ -162,7 +167,7 @@ class Game(object):
         """プレイに関する情報を取得する
         """
         info = '[{title}]{br}'.format(title=self.definition.title, br=os.linesep)
-        info += '- Player:{0} in {1} players'.format(self.state.get_context('$player'), self.num_players)
+        info += '- Player:{0} in {1} players'.format(int(self.state.get_context('$player')), self.num_players)
         return info
         
     def get_contextpath(self):
@@ -246,6 +251,11 @@ class Game(object):
         else:
             print 'No command;', cmds
             #print 'on_play:', self.on_play #DEBUG
+        
+    def collect_reward(self):
+        """獲得した報酬を取得する
+        """
+        return self.reward.collect()
         
     def perform_action(self, action):
         """アクションを実行する
@@ -662,3 +672,67 @@ class Observation(object):
         """全プロパティの値を配列で取得する。
         """
         print 'TODO:to_array()'
+
+class Reward(object):
+    """報酬
+    強化学習でいうところの“報酬”を管理する。
+    
+    ゲーム中でスコアを獲得することが勝利に繋がるのであればそれは報酬の一つであるが、それが全てではない。
+    言うまでもなく、ゲームに勝利することは最大の報酬である。
+    また、ルール違反となるアクションを選択すること≒反則負けとみなせば、それは負の報酬であるとも言える。
+    勝利に関連する/しない以外にも、プレイヤーが楽しいと感じる目標を達成したとき(特定のチップを獲得する等)
+    にも報酬を発行するようにすれば、「感情を持ったエージェント」になることが期待される。
+    """
+    
+    def __init__(self, player = 1, num_players = 1, negative_ratio = 0.1):
+        """初期化
+        1より大きい num_players が与えられた場合は他プレイヤーの報酬も合わせて管理する。
+        @param player: int 管理対象プレイヤー番号
+        @param num_players: int 管理対象プレイヤー数
+        @param negative_ratio: float 打ち消し率
+            他プレイヤーの報酬を合わせて管理するとき、その増加分を対象プレイヤーの報酬から差し引く
+            ことができる。そのときの割合。
+            対象プレイヤーの報酬が 1, 他プレイヤーの報酬が合計 2, 打ち消し率が 0.1の場合、取得
+            される報酬は 1-2*0.1 = 0.8 となる。
+        """
+        assert player <= num_players
+        
+        self.player = player
+        self.num_players = num_players
+        self.negative_ratio = negative_ratio
+        
+        self.rewards = [0] * (num_players + 1)
+        """報酬を管理する配列
+            0 -> 管理対象プレイヤーの累積報酬値
+            0以外 -> 管理対象プレイヤーごとの獲得報酬値
+            @see collect()
+        """
+    
+    def add(self, reward, player = 1):
+        """獲得した報酬を加算する
+        @param reward: int 報酬値
+        @param player: int 獲得したプレイヤーの番号
+        """
+        self.rewards[player] += reward
+        
+    def collect(self):
+        """獲得した報酬を取得する
+        打ち消しについては @see __init__()
+        本メソッド実行時に報酬は累積に加算され、各プレイヤーの獲得報酬値は0にリセットされる。
+        """
+        negative = 0
+        for i in range(self.num_players + 1):
+            if (i != 0) and (i != self.player):
+                negative += self.rewards[i]
+        reward = self.rewards[self.player] - negative * self.negative_ratio
+        
+        for i in range(self.num_players + 1):
+            if i == 0:
+                self.rewards[0] += reward
+            else:
+                self.rewards[i] = 0
+        return reward
+    
+    def __str__(self, *args, **kwargs):
+        return str(self.rewards)
+
