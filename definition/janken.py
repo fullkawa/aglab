@@ -102,21 +102,21 @@ components = {
     'Gu':{
         'name': 'グー',
         'str':  'G',
-        'rstr': '#',
+        'rstr': 'g',
         'num':  card_num * num_players['max'],
         '_placed':{
             'type':'stochastic'}},
     'Tyoki':{
         'name': 'チョキ',
         'str':  'T',
-        'rstr': '#',
+        'rstr': 't',
         'num':  card_num * num_players['max'],
         '_placed':{
             'type':'stochastic'}},
     'Pa':{
         'name': 'パー',
         'str':  'P',
-        'rstr': '#',
+        'rstr': 'p',
         'num':  card_num * num_players['max'],
         '_placed':{
             'type':'stochastic'}}}

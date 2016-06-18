@@ -17,15 +17,15 @@ contexts = {
 components = {
     'C1':{
         'name': 'カード1',
-        'str':  '1',
-        'rstr': '#',
+        'str':  ' 1',
+        'rstr': '-1',
         'num':  1,
         '_placed':{
             'type':'stochastic'}},
     'C2':{
         'name': 'カード2',
-        'str':  '2',
-        'rstr': '#',
+        'str':  ' 2',
+        'rstr': '-2',
         'num':  3,
         '_placed':{
             'type':'stochastic'}}}
