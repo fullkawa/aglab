@@ -148,21 +148,6 @@ class Game(object):
         for i in range(10): # /setup:0 - 9
             self._process(self.on_setup, contextpath='/setup:{i}'.format(i=i))
         
-    def _process(self, procs, contextpath=None, reward=None, report=None):
-        """定義された処理を実行する
-        これにより、ゲームの状態が変化する。
-        @param procs: list    実行したい処理のリスト。リストの先頭が最も優先順位が高い。
-        @param contextpath: str コンテキストパスが渡されたとき、procsのうちそれにマッチしたものだけが実行される。
-        """
-        for proc in procs:
-            if contextpath is not None:
-                matching = re.match('^{match}$'.format(match=proc['match']), contextpath)
-                if matching is None:
-                    continue # =skip
-            print 'PROCESS:{0} {1}'.format(proc['key'], '' if (proc['args'] is None) else proc['args'])
-            proc['proc'](self.state, proc['args'], reward=reward, report=report)
-            break
-        
     def get_info(self):
         """プレイに関する情報を取得する
         """
@@ -206,8 +191,6 @@ class Game(object):
     def step(self, command=None):
         """ゲームを1ステップ進行する
         @param command: dict コマンド
-            コマンドが渡されたとき、そのコマンドを実行する
-            コマンドが渡されなかった場合は、条件にマッチする最初のコマンドを実行する
         """
         self.step_no += 1
         
@@ -227,6 +210,11 @@ class Game(object):
         print 'TODO:_matched_command()'
         
     def _step_command(self):
+        """コマンド実行の前処理
+        * 簡易入力形式の変換
+        * 定義不要コマンド(set, move, end)の実装
+        を含む。
+        """
         cmds = string.split(self.command)
         assert cmds is not None
         assert len(cmds) > 0
@@ -251,6 +239,21 @@ class Game(object):
         else:
             print 'No command;', cmds
             #print 'on_play:', self.on_play #DEBUG
+        
+    def _process(self, procs, contextpath=None, reward=None, report=None):
+        """定義された処理を実行する
+        これにより、ゲームの状態が変化する。
+        @param procs: list    実行したい処理のリスト。リストの先頭が最も優先順位が高い。
+        @param contextpath: str コンテキストパスが渡されたとき、procsのうちそれにマッチしたものだけが実行される。
+        """
+        for proc in procs:
+            if contextpath is not None:
+                matching = re.match('^{match}$'.format(match=proc['match']), contextpath)
+                if matching is None:
+                    continue # =skip
+            print 'PROCESS:{0} {1}'.format(proc['key'], '' if (proc['args'] is None) else proc['args'])
+            proc['proc'](self.state, proc['args'], reward=reward, report=report)
+            break
         
     def collect_reward(self):
         """獲得した報酬を取得する
