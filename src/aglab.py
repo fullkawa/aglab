@@ -16,18 +16,19 @@ class Game(object):
     @see testplay.ipynb
     """
     
-    max_steps = 99999;
+    max_steps = 9 #TEST:99999;
     """最大実行ステップ数
     無限ループから抜けるためのリミッター
     """
     
-    def __init__(self, definition):
+    def __init__(self, definition, controller=None):
         """初期化
         プレイごとにリセット *されない* パラメータの設定など
         @param definition: dict ゲーム定義
         """
         assert definition != None
         self.definition = definition
+        self.controller = controller
         
         self.num_players_list = []
         self.num_players = self.min_players = definition.num_players['min']
@@ -82,8 +83,6 @@ class Game(object):
             else:
                 module = getattr(self.definition, names[0])
                 name    = names[1]
-            if name == 'action?': # FIXME:OK?
-                continue
             
             #print 'module:', module #DEBUG
             proc = {
@@ -92,11 +91,17 @@ class Game(object):
                 'match': def_proc[0],
                 'proc': getattr(module, name)}
             if len(def_proc) > 2:
-                proc['args'] = def_proc[2]
+                proc['args'] = def_proc[2:]
+                if isinstance(def_proc[2], list):
+                    params = {
+                        'actions': len(def_proc[2])}
+                    proc['controller'] = self.controller(params)
             else:
                 proc['args'] = None
                 
+            print 'proc:', proc #DEBUG
             procs.append(proc)
+        
         return procs
         
     def rand_params(self):
@@ -136,23 +141,23 @@ class Game(object):
         if params is None:
             params = self.rand_params()
         self.num_players = params['num_players']
+        self.player = params['player']
         self.state.set_context('$player-num', self.num_players)
-        self.state.set_context('$on-play-num', self.num_players)
-        self.state.set_context('$player', params['player'])
+        self.state.set_context('$player', self.player)
         
         if self.num_players >= 3:
             self.state.set_context('$player-3', 1)
         if self.num_players >= 4:
             self.state.set_context('$player-4', 1)
         
-        for i in range(10): # /setup:0 - 9
-            self._process(self.on_setup, contextpath='/setup:{i}'.format(i=i))
+        for proc in self.on_setup:
+            self._process(proc)
         
     def get_info(self):
         """プレイに関する情報を取得する
         """
         info = '[{title}]{br}'.format(title=self.definition.title, br=os.linesep)
-        info += '- Player:{0} in {1} players'.format(int(self.state.get_context('$player')), self.num_players)
+        info += '- Player:{0} in {1} players'.format(self.player, self.num_players)
         return info
         
     def get_contextpath(self):
@@ -181,7 +186,12 @@ class Game(object):
     def get_observation(self, observer=None):
         """ゲームの観察結果を配列(≒ベクトル)で取得する
         """
-        return self.observation.to_array()
+        return self.observation.to_array(observer)
+        
+    def collect_reward(self):
+        """獲得した報酬を取得する
+        """
+        return self.reward.collect()
     
     def get_prompt(self):
         """プレイヤー入力
@@ -195,7 +205,8 @@ class Game(object):
         self.step_no += 1
         
         if command is None:
-            self.command, self.act = self._matched_command()
+            self.command, self.act = self._matched_command(self.get_contextpath())
+            
         else:
             self.command = command
             self._step_command()
@@ -203,11 +214,6 @@ class Game(object):
         if self.is_end is not None:
             self.done = self.done or self.is_end(self.state)
         return
-        
-    def _matched_command(self):
-        """条件にマッチする最初のコマンドを取得する
-        """
-        print 'TODO:_matched_command()'
         
     def _step_command(self):
         """コマンド実行の前処理
@@ -227,7 +233,7 @@ class Game(object):
         if len(proc) > 0:
             if len(cmds) > 1:
                 proc[0]['args'] = cmds[1:]
-            self._process(proc, reward=self.reward, report=self.report)
+            self._process(proc[0], reward=self.reward, report=self.report)
         elif 'move' == cmds[0]:
             assert len(cmds) == 3
             self.state.move_component(cmds[1], cmds[2])
@@ -240,30 +246,38 @@ class Game(object):
             print 'No command;', cmds
             #print 'on_play:', self.on_play #DEBUG
         
-    def _process(self, procs, contextpath=None, reward=None, report=None):
-        """定義された処理を実行する
-        これにより、ゲームの状態が変化する。
-        @param procs: list    実行したい処理のリスト。リストの先頭が最も優先順位が高い。
-        @param contextpath: str コンテキストパスが渡されたとき、procsのうちそれにマッチしたものだけが実行される。
+    def _matched_command(self, contextpath):
+        """条件にマッチする最初のコマンドを取得する
         """
-        for proc in procs:
-            if contextpath is not None:
-                matching = re.match('^{match}$'.format(match=proc['match']), contextpath)
-                if matching is None:
-                    continue # =skip
-            print 'PROCESS:{0} {1}'.format(proc['key'], '' if (proc['args'] is None) else proc['args'])
-            proc['proc'](self.state, proc['args'], reward=reward, report=report)
-            break
-        
-    def collect_reward(self):
-        """獲得した報酬を取得する
-        """
-        return self.reward.collect()
+        command = None
+        for proc in self.on_play:
+            matched = re.match('^{match}$'.format(match=proc['match']), contextpath)
+            if matched is not None:
+                #print 'match:', proc #DEBUG
+                command = proc
+                break
+        command = self.on_play[1] #DEBUG
+        act = None
+        if 'controller' in command:
+            act = command['controller']
+        return command, act
         
     def perform_action(self, action):
         """アクションを実行する
         """
-        print 'TODO:perform_action()'
+        self._process(self.command, action=action, reward=self.reward, report=self.report)
+        
+    def _process(self, proc, action=None, reward=None, report=None):
+        """定義された処理を実行する
+        これにより、ゲームの状態が変化する。
+        @param proc: dict 実行したい処理
+        """
+        args = proc['args']
+        print 'args:', args #DEBUG
+        if (args is not None) and isinstance(args[0], list) and (action is not None):
+            args[0] = args[0][action]
+        print 'PROCESS:{0} {1}'.format(proc['key'], '' if (args is None) else args)
+        proc['proc'](self.state, args, reward=reward, report=report)
         
     def get_result(self):
         """プレイ結果を取得する
@@ -524,7 +538,7 @@ class State(object):
         else:
             return values
     
-    def set_player(self, name, context_key='$player-name'):
+    def set_player(self, name, context_key='$player'):
         """プレイヤー(ここではアクションを選択するプレイヤーを指す)を設定する
         """
         _fkeys = [] #対象プレイヤーに関連するfkey
@@ -534,7 +548,7 @@ class State(object):
                 _fkeys.append(fkey)
         self.set_value(self.VALUE_KNOWN, fkey=_fkeys, scope='private', column='unknown')
         
-        player_name = self.set_value(name, key=context_key)
+        self.set_value(name, key=context_key)
     
     def _conv_key(self, key):
         """keyが短縮形(shorten)だったとき、それを通常のキーに変換する
@@ -671,10 +685,11 @@ class Observation(object):
         """
         print 'TODO:get_header()'
         
-    def to_array(self):
+    def to_array(self, observer=None):
         """全プロパティの値を配列で取得する。
         """
         print 'TODO:to_array()'
+        return []
 
 class Reward(object):
     """報酬

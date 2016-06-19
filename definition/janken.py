@@ -188,8 +188,8 @@ fields = {
 """プレイ前の準備(ゲーム開始時処理)
 """
 on_setup = [
-    ['/setup:1', 'common.set_turn_order'],
-    ['/setup:2', 'init_hand']]
+    ['', 'common.set_turn_order'],
+    ['', 'init_hand']]
 
 """プレイの流れ(ゲーム内処理)
 """
@@ -275,27 +275,22 @@ def init_hand(state, args, reward=None, report=None):
                 state.set_component((ckey, cindex), (fkey, findex))
                 findex += 1
 
-def set_card(state, args, action=None, reward=None, report=None):
+def set_card(state, args, reward=None, report=None):
     """手札からカードを出す
     """
-    print 'args:', args #DEBUG
-    print 'action:', action #DEBUG
-    action_count = 3 #TODO:action_count取得
-    if action is not None:
-        common.move(state, [('$player-1_hand', action*card_num), ('$player-1_played', 0)])
-        return None
-    else:
-        return action_count
-    print 'TODO:set_card()'
+    assert len(args[0]) == 1
+    ckey = args[0]['ckey']
+    
+    common.move(state, [('$player-1_hand', ckey), ('$player-1_played', 0)])
 
 def add_score(state, args, reward=None, report=None):
     """得点を加算する
     @param args[0]: 得点
     @param args[1]: 加算対象プレイヤー番号
     """
-    assert len(args) == 2
-    score = int(args[0])
-    player = int(args[1])
+    if len(args) == 2:
+        score = int(args[0])
+        player = int(args[1])
     
     key = '$player-{0}_score'.format(player)
     state.set_context(key, state.get_context(key) + score)
