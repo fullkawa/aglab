@@ -6,7 +6,7 @@
 """
 
 contexts = {
-    '$player-name':{
+    '$player':{
         'desc': 'アクションを行うプレイヤー名(player-1/2/3/4)',
         'scope':'public'},
     '$cxt-1':{

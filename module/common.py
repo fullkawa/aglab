@@ -14,7 +14,29 @@ contexts = {
         'desc': 'プレイ人数',
         'scope':'public'},
     '$player':{
-        'desc': 'アクションを行うプレイヤー名(player-1/2/3/4)',
+        'desc': 'アクションを行うプレイヤー名',
+        'scope':'public'},
+    '$phase-no':{
+        'desc': 'フェイズ番号',
+        'scope':'public',
+        'value':0},
+    '$turn-no':{
+        'desc': 'ターン番号',
+        'scope':'public',
+        'value':0},
+    '$turn-order':{
+        'desc': '手番順を示すプレイヤー番号',
+        'size': 36, #デフォルト値
+        'scope':'public'},
+    '$turn-player':{
+        'desc': 'ターンプレイヤーのプレイヤー番号',
+        'scope':'public'},
+    '$prev-player':{
+        'desc': '前プレイヤーのプレイヤー番号',
+        'scope':'public'},
+    '$next-player':{
+        'desc': '次プレイヤーのプレイヤー番号',
+        'size': 2, #デフォルト値
         'scope':'public'}}
 
 """基本アクション
@@ -87,7 +109,7 @@ def set_turn_order(state, args, reward=None, report=None):
     @param args: list/int/str argsがNoneの場合、数字1つの場合はプレイヤー人数とみなす。  
         カンマで連結された文字列であれば行動順を示すプレイヤー番号とみなす。
     """
-    turn_order = state.get_context('$turn-order')
+    turn_order = list(state.get_context('$turn-order'))
     
     if args is None:
         args = int(state.get_context('$player-num'))
@@ -100,7 +122,7 @@ def set_turn_order(state, args, reward=None, report=None):
         _order = args.split(',')
         #print '_order:', _order #DEBUG
         for i in range(len(_order)):
-            turn_order[i] = _order[i]
+            turn_order[i] = int(_order[i])
     else:
         print '[WARN] Illegal args:', args
     #print 'turn_order:', turn_order #DEBUG
@@ -110,8 +132,9 @@ def turn_start(state, args, reward=None, report=None):
     """ターン開始処理
     @param args: list/str argsがあるとき、それを手番順(turn_order)としてセットする
     """
-    if args is not None:
-        set_turn_order(state, args)
+    if (args is not None) and isinstance(args, list) and (len(args) > 0):
+        if isinstance(args[0], str):
+            set_turn_order(state, args[0])
     
     turn = int(state.get_context('$turn-no'))
     if turn > 0:
@@ -143,9 +166,19 @@ def turn_end(state, args, reward=None, report=None):
     """ターン終了処理
     @param args: list/int/str argsがあるとき、それを手番順(turn_order)の最後にセットする
     """
-    turn_order = state.get_context('$turn-order')
+    state.set_context('$phase-no', 0)
+    
+    player = None
     if isinstance(args, list) and len(args) > 0:
-        util.append_value(turn_order, int(args[0]))
+        try:
+            player = int(args[0])
+        except ValueError: # intに変換できなかった場合
+            if args[0].startswith('$'):
+                player = int(state.get_context(args))
+        
+    if player is not None:
+        turn_order = state.get_context('$turn-order')
+        util.append_value(turn_order, player)
         state.set_context('$turn-order', turn_order)
 
 

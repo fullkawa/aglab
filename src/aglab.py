@@ -8,7 +8,7 @@ import re
 import string
 from pandas.core.index import MultiIndex
 
-from src import util
+from src import util, exception
 
 class Game(object):
     """ゲーム
@@ -16,7 +16,7 @@ class Game(object):
     @see testplay.ipynb
     """
     
-    max_steps = 9 #TEST:99999;
+    max_steps = 99 #TEST:99999;
     """最大実行ステップ数
     無限ループから抜けるためのリミッター
     """
@@ -76,7 +76,7 @@ class Game(object):
         procs = []
         for def_proc in def_procs:
             #print 'def_proc:', def_proc #DEBUG
-            names = def_proc[1].split('.', 1)
+            names = def_proc['key'].split('.', 1)
             if len(names) == 1:
                 module  = self.definition
                 name    = names[0]
@@ -88,18 +88,21 @@ class Game(object):
             proc = {
                 'key':  '{0}.{1}'.format(module.__name__, name),
                 'command': name,
-                'match': def_proc[0],
                 'proc': getattr(module, name)}
-            if len(def_proc) > 2:
-                proc['args'] = def_proc[2:]
-                if isinstance(def_proc[2], list):
+            if 'match' in def_proc:
+                proc['match'] = def_proc['match']
+            if 'args' in def_proc:
+                proc['args'] = def_proc['args']
+                if (self.controller is not None) and isinstance(def_proc['args'][0], list):
                     params = {
-                        'actions': len(def_proc[2])}
+                        'actions': len(def_proc['args'][0])}
                     proc['controller'] = self.controller(params)
             else:
                 proc['args'] = None
+            if 'then' in def_proc:
+                proc['then'] = def_proc['then']
                 
-            print 'proc:', proc #DEBUG
+            #print 'proc:', proc #DEBUG
             procs.append(proc)
         
         return procs
@@ -203,9 +206,12 @@ class Game(object):
         @param command: dict コマンド
         """
         self.step_no += 1
+        print 'STEP:', self.step_no, '-' * 32
         
         if command is None:
             self.command, self.act = self._matched_command(self.get_contextpath())
+            if self.act is None:
+                self._process(self.command, reward=self.reward, report=self.report)
             
         else:
             self.command = command
@@ -249,14 +255,17 @@ class Game(object):
     def _matched_command(self, contextpath):
         """条件にマッチする最初のコマンドを取得する
         """
+        #print 'contextpath:', contextpath #DEBUG
         command = None
         for proc in self.on_play:
-            matched = re.match('^{match}$'.format(match=proc['match']), contextpath)
+            matched = re.match(proc['match'], contextpath)
             if matched is not None:
                 #print 'match:', proc #DEBUG
                 command = proc
                 break
-        command = self.on_play[1] #DEBUG
+        if command is None:
+            raise exception.NoMatchedProcess(contextpath)
+            
         act = None
         if 'controller' in command:
             act = command['controller']
@@ -273,11 +282,13 @@ class Game(object):
         @param proc: dict 実行したい処理
         """
         args = proc['args']
-        print 'args:', args #DEBUG
         if (args is not None) and isinstance(args[0], list) and (action is not None):
             args[0] = args[0][action]
         print 'PROCESS:{0} {1}'.format(proc['key'], '' if (args is None) else args)
         proc['proc'](self.state, args, reward=reward, report=report)
+        if 'then' in proc:
+            for key, value in proc['then'].items():
+                self.state.set_context(key, value)
         
     def get_result(self):
         """プレイ結果を取得する
@@ -330,9 +341,10 @@ class State(object):
                 items.append(self._build_fields_field(key, field))
             _fields.extend(items)
             
-        """DEBUG"""
+        """DEBUG
         print 'State.fields:', len(_fields)
         print _fields[0]
+        """
         
         return _fields
         
@@ -394,8 +406,8 @@ class State(object):
                 else:
                     value = float('nan')
                 values.append([known, value])
-        print 'State.contexts:', len(ckeys)
         """DEBUG
+        print 'State.contexts:', len(ckeys)
         print ' ckeys:', ckeys
         print 'cindexes:', cindexes
         print 'propnames:', propnames
@@ -442,11 +454,12 @@ class State(object):
                             known = self.VALUE_UNKNOWN
                         values.append([known, float('nan')])
                         
-        """DEBUG"""
+        """DEBUG
         print 'State.components:', len(self.components)
         print self.components[0]
         print 'State.values:', len(values)
         print ckeys[0], cindexes[0], propnames[0], fkeys[0], findexes[0], scopes[0], values[0]
+        """
         
     def __str__(self, *args, **kwargs):
         #return object.__str__(self, *args, **kwargs)
@@ -460,7 +473,7 @@ class State(object):
     def to_array(self):
         """全プロパティの値を配列で取得する。
         """
-        print 'TODO:to_array()'
+        print 'TODO:State.to_array()'
     
     def set_context(self, key, value):
         """コンテキストを設定する
@@ -505,7 +518,9 @@ class State(object):
             key, cindex = util.get_key_and_index(component)
         if field is not None:
             fkey, findex = util.get_key_and_index(field)
-            
+        
+        key = self._conv_key(key)
+        fkey = self._conv_key(fkey)
         slicer = self.get_islicer(key=key, cindex=cindex, propname=propname, fkey=fkey, findex=findex, scope=scope)
         try:
             self.data.loc[slicer, column] = value
@@ -531,6 +546,8 @@ class State(object):
         if field is not None:
             fkey, findex = util.get_key_and_index(field)
             
+        key = self._conv_key(key)
+        fkey = self._conv_key(fkey)
         slicer = self.get_islicer(key=key, cindex=cindex, propname=propname, fkey=fkey, findex=findex, scope=scope)
         values = self.data.loc[slicer, column].values
         if (len(values) == 1) and (return_list == False):
@@ -538,17 +555,58 @@ class State(object):
         else:
             return values
     
+    def get_value_reshaped(self,
+                           context=None, component=None, field=None,
+                           key=None, cindex=None, propname=None, fkey=None, findex=None, scope=None, 
+                           column='value', 
+                           return_list=False):
+        """二次元配列で値を取得する
+        """
+        values = self.get_value(context=context, component=component, field=field,
+                                key=key, cindex=cindex, propname=propname, fkey=fkey, findex=findex, scope=scope,
+                                column=column,
+                                return_list=return_list)
+        #print 'len(values):', len(values) #DEBUG
+        
+        num_components = len(self.components)
+        #print 'num_components:', num_components #DEBUG
+        if (key is not None) and (cindex is None):
+            key = self._conv_key(key)
+            num_components = len(util.dict_search(self.components, ('key', key)))
+            #print ' ->', num_components #DEBUG
+        
+        size_fields = len(self.fields)
+        #print 'size_fields:', size_fields #DEBUG
+        if (fkey is not None) and (findex is None):
+            fkey = self._conv_key(fkey)
+            size_fields = len(util.dict_search(self.fields, ('key', fkey)))
+            #print ' ->', size_fields #DEBUG
+        
+        return values.reshape(num_components, size_fields)
+    
     def set_player(self, name, context_key='$player'):
         """プレイヤー(ここではアクションを選択するプレイヤーを指す)を設定する
         """
         _fkeys = [] #対象プレイヤーに関連するfkey
         fkeys = self.data.index.get_level_values(self.INDEX_FIELD_KEY).values
         for fkey in np.unique(fkeys):
-            if name in fkey:
+            if 'player-{0}'.format(name) in fkey:
                 _fkeys.append(fkey)
         self.set_value(self.VALUE_KNOWN, fkey=_fkeys, scope='private', column='unknown')
         
         self.set_value(name, key=context_key)
+        
+    def last(self, fkey):
+        """指定されたフィールドを先頭から走査し、最後にセットされているコンポーネントのインデックスを取得する
+        コンポーネントが一つもセットされていない場合は-1を返す。
+        """
+        values = self.get_value_reshaped(fkey=fkey)
+        
+        _last = -1
+        for i, value in enumerate(np.sum(values, axis=0)):
+            if np.isnan(value):
+                return _last
+            _last = i
     
     def _conv_key(self, key):
         """keyが短縮形(shorten)だったとき、それを通常のキーに変換する
@@ -567,10 +625,8 @@ class State(object):
         assert component is not None
         assert _to is not None
         
-        _ckey, cindex = util.get_key_and_index(component)
-        ckey = self._conv_key(_ckey)
-        _fkey, findex = util.get_key_and_index(_to)
-        fkey = self._conv_key(_fkey)
+        ckey, cindex = util.get_key_and_index(component)
+        fkey, findex = util.get_key_and_index(_to)
         
         self.set_value(self.VALUE_NON_EXISTENT, fkey=fkey, findex=findex)
         self.set_value(self.VALUE_EXISTENT, key=ckey, cindex=cindex, fkey=fkey, findex=findex)
@@ -581,14 +637,25 @@ class State(object):
         assert _from is not None
         assert _to is not None
         
-        _fkey, findex = util.get_key_and_index(_from)
-        fkey = self._conv_key(_fkey)
-        _tkey, tindex = util.get_key_and_index(_to)
-        tkey = self._conv_key(_tkey)
+        fkey, findex = util.get_key_and_index(_from)
+        #fkey = self._conv_key(_fkey)
+        tkey, tindex = util.get_key_and_index(_to)
+        #tkey = self._conv_key(_tkey)
         
         values = self.get_value(fkey=fkey, findex=findex)
         self.set_value(values, fkey=tkey, findex=tindex)
         self.set_value(float('nan'), fkey=fkey, findex=findex)
+        
+    def index_component(self, component, _in):
+        """指定コンポーネントがセットされているフィールド内の位置を返す。
+        フィールド内に1つもなければ-1, 
+        フィールド内に複数あれば始めに見つかった位置を返す。
+        """
+        values = self.get_value_reshaped(key=component, fkey=_in)
+        for i, value in enumerate(np.sum(values, axis=0)):
+            if value > 0:
+                return i
+        return -1
         
     def output_component(self, field=None, fkey=None, findex=None):
         """指定されたフィールドにセットされているコンポーネントの出力形式を取得する
@@ -598,6 +665,7 @@ class State(object):
         
         if field is not None:
             fkey, findex = util.get_key_and_index(field)
+        fkey = self._conv_key(fkey)
         slicer = self.get_islicer(propname='_placed', fkey=fkey, findex=findex)
         unknown = self.data.loc[slicer, 'unknown'][0]
         #print 'unknown:', unknown #DEBUG
@@ -673,9 +741,10 @@ class Observation(object):
             
         _fields = sorted(o_fields_dict)
         
-        """DEBUG"""
+        """DEBUG
         print 'Observation.fields:', len(_fields)
         #print _fields
+        """
         
     def __str__(self, *args, **kwargs):
         return object.__str__(self, *args, **kwargs)
@@ -688,7 +757,7 @@ class Observation(object):
     def to_array(self, observer=None):
         """全プロパティの値を配列で取得する。
         """
-        print 'TODO:to_array()'
+        print 'TODO:Observation.to_array()'
         return []
 
 class Reward(object):

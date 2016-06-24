@@ -53,23 +53,9 @@ num_players = {
 """
 contexts = common.contexts
 util.dict_merge(contexts, {
-    '$turn-no':{
-        'desc': 'ターン番号',
-        'scope':'public',
-        'value':0},
     '$turn-order':{
         'desc': '手番順を示すプレイヤー番号',
-        'size': 3 * card_num * num_players['max'] / 2,
-        'scope':'public'},
-    '$turn-player':{
-        'desc': 'ターンプレイヤーのプレイヤー番号',
-        'scope':'public'},
-    '$prev-player':{
-        'desc': '前プレイヤーのプレイヤー番号',
-        'scope':'public'},
-    '$next-player':{
-        'desc': '次プレイヤーのプレイヤー番号',
-        'size': 2,
+        'size': 3 * card_num * num_players['max'] / 2, #サイズ上書き
         'scope':'public'},
     '$player-1_score':{
         'desc': 'プレイヤー1の得点',
@@ -99,21 +85,21 @@ util.dict_merge(contexts, {
     凡例) *=必須, -=任意
 """
 components = {
-    'Gu':{
+    'G':{
         'name': 'グー',
         'str':  'G',
         'rstr': 'g',
         'num':  card_num * num_players['max'],
         '_placed':{
             'type':'stochastic'}},
-    'Tyoki':{
+    'T':{
         'name': 'チョキ',
         'str':  'T',
         'rstr': 't',
         'num':  card_num * num_players['max'],
         '_placed':{
             'type':'stochastic'}},
-    'Pa':{
+    'P':{
         'name': 'パー',
         'str':  'P',
         'rstr': 'p',
@@ -139,7 +125,7 @@ fields = {
         'distinguishable': False,
         'scope':'private'},
     'player-1_played':{
-        'name': 'プレイヤー1の手札',
+        'name': 'プレイヤー1が使用したカード',
         'size': 3 * card_num,
         'shorten':'P1.p',
         'distinguishable': True,
@@ -151,7 +137,7 @@ fields = {
         'distinguishable': False,
         'scope':'private'},
     'player-2_played':{
-        'name': 'プレイヤー2の手札',
+        'name': 'プレイヤー2が使用したカード',
         'size': 3 * card_num,
         'shorten':'P2.p',
         'distinguishable': True,
@@ -163,7 +149,7 @@ fields = {
         'distinguishable': False,
         'scope':'private'},
     'player-3_played':{
-        'name': 'プレイヤー3の手札',
+        'name': 'プレイヤー3が使用したカード',
         'size': 3 * card_num,
         'shorten':'P3.p',
         'distinguishable': True,
@@ -175,7 +161,7 @@ fields = {
         'distinguishable': False,
         'scope':'private'},
     'player-4_played':{
-        'name': 'プレイヤー4の手札',
+        'name': 'プレイヤー4が使用したカード',
         'size': 3 * card_num,
         'shorten':'P4.p',
         'distinguishable': True,
@@ -188,19 +174,45 @@ fields = {
 """プレイ前の準備(ゲーム開始時処理)
 """
 on_setup = [
-    ['', 'common.set_turn_order'],
-    ['', 'init_hand']]
+    {'key':'common.set_turn_order'},
+    {'key':'init_hand'}]
 
 """プレイの流れ(ゲーム内処理)
+    * match: 正規表現が利用可能。これがコンテキストパスと一致する最初の処理が自動プレイ時に実行される。
+    * key: 他モジュールを参照する場合はファイルをimportし(commonのみimport済み)、
+        モジュール名とキーをピリオドで連結する。例) common.turn_start　
+        手動プレイ時はこれ(モジュール名、ピリオドを除く)がコマンドとなる。
+    - args: 自動プレイ時に与えられる引数
+    - then: 処理後に変更するコンテキストのキー、値
+    凡例) *=必須, -=任意
 """
 on_play = [
-    ['.*/', 'common.turn_start'],
-    ['.*/turn:[0-9]*.*', 'set_card', [
-        {'ckey': 'G'},
-        {'ckey': 'T'},
-        {'ckey': 'P'}]],
-    ['.*/turn:[0-9]*.*', 'add_score'],
-    ['.*/turn:[0-9]*.*', 'common.turn_end']]
+    {'match':'.*/phase:1',
+     'key':'set_card',
+     'args':[
+        [{'ckey':'G'}, {'ckey':'T'}, {'ckey':'P'}],
+        'P{turn_player}.p'],
+     'then':{
+         '$phase-no':2}},
+    {'match':'.*/phase:2',
+     'key':'set_card',
+     'args':[
+        [{'ckey':'G'}, {'ckey':'T'}, {'ckey':'P'}],
+        'P{next_player}.p'],
+     'then':{
+         '$phase-no':3}},
+    {'match':'.*/phase:3',
+     'key':'judge',
+     'then':{
+         '$phase-no':4}},
+    {'match':'.*/phase:4',
+     'key':'common.turn_end',
+     'args':[
+         '$turn-player']},
+    {'match':'.*/',
+     'key':'common.turn_start',
+     'then':{
+         '$phase-no':1}}]
 
 """ゲーム終了条件
 """
@@ -230,9 +242,14 @@ def output_contextpath(state):
     コンテキストパスとはプレイの状況(≠状態)をURLに似た階層構造で表現したものである。
     """
     path = '//'
-    turn = state.get_context('$turn-no')
+    paths = []
+    turn = int(state.get_context('$turn-no'))
     if turn > 0:
-        path += util.build_urlpath([('turn', str(int(turn)))])
+        paths.append(('turn', str(turn)))
+    phase = int(state.get_context('$phase-no'))
+    if phase > 0:
+        paths.append(('phase', str(phase)))
+    path += util.build_urlpath(paths)
     
     qslist = []
     tp = state.get_context('$turn-player')
@@ -278,10 +295,59 @@ def init_hand(state, args, reward=None, report=None):
 def set_card(state, args, reward=None, report=None):
     """手札からカードを出す
     """
-    assert len(args[0]) == 1
+    assert len(args) > 0 and (len(args[0]) == 1)
     ckey = args[0]['ckey']
+    _to_key = args[1]
     
-    common.move(state, [('$player-1_hand', ckey), ('$player-1_played', 0)])
+    if 'turn_player' in _to_key:
+        player = int(state.get_context('$turn-player'))
+        _to_key = _to_key.format(turn_player=player)
+    elif 'next_player' in _to_key:
+        player = int(state.get_context('$next-player')[0])
+        _to_key = _to_key.format(next_player=player)
+    
+    _from_key = 'P{0}.h'.format(player)
+    _from_index = state.index_component(ckey, _from_key)
+    _to_index = state.last(_to_key) + 1
+    """DEBUG
+    print '_from_key:', _from_key
+    print '_from_index:', _from_index
+    print '_to_key:', _to_key
+    print '_to_index:', _to_index
+    """
+    state.move_component((_from_key, _from_index), (_to_key, _to_index))
+    state.set_value(state.VALUE_UNKNOWN, fkey=_to_key, findex=_to_index, column='unknown')
+
+def judge(state, args, reward=None, report=None):
+    """カードを表向きにして勝敗を判定する
+    """
+    turn_player = int(state.get_context('$turn-player'))
+    next_player = int(state.get_context(('$next-player', 0)))
+    tp_played = 'P{0}.p'.format(turn_player)
+    np_played = 'P{0}.p'.format(next_player)
+    tp_last = state.last(tp_played)
+    np_last = state.last(np_played)
+    
+    # 表向きにする
+    state.set_value(state.VALUE_KNOWN, fkey=tp_played, findex=tp_last, column='unknown')
+    state.set_value(state.VALUE_KNOWN, fkey=np_played, findex=np_last, column='unknown')
+    
+    # 勝敗判定
+    tp = state.output_component(fkey=tp_played, findex=tp_last)
+    np = state.output_component(fkey=np_played, findex=np_last)
+    #print 'tp:', tp, ' vs np:', np #DEBUG
+    if tp == np:
+        # あいこ
+        add_score(state, [1, turn_player])
+        add_score(state, [1, next_player])
+    elif (tp=='G' and np=='T') or (tp=='T' and np=='P') or (tp=='P' and np=='G'):
+        # turn_playerの勝ち
+        add_score(state, [3, turn_player])
+    elif (tp=='G' and np=='P') or (tp=='T' and np=='G') or (tp=='P' and np=='T'):
+        # next_playerの勝ち
+        add_score(state, [3, next_player])
+    else:
+        print 'Illegal hand; turn-player:', tp, ', next-player:', np
 
 def add_score(state, args, reward=None, report=None):
     """得点を加算する

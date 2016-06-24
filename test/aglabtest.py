@@ -13,7 +13,7 @@ class StateTestCase(unittest.TestCase):
     def setUp(self):
         unittest.TestCase.setUp(self)
         self.state = aglab.State(test)
-        print
+        #print
     
     def test__init(self):
         state = self.state
@@ -98,18 +98,34 @@ C2           0      _placed  F1              0.0    hidden         1    NaN
         state = self.state
         p1_hand = state.get_value(propname='_placed', fkey='player-1_hand', scope='private', column='unknown')
         p2_hand = state.get_value(propname='_placed', fkey='player-2_hand', scope='private', column='unknown')
-        player_name = state.get_value(key='$player-name')
+        player = state.get_value(key='$player')
         assert p1_hand[0] == aglab.State.VALUE_UNKNOWN
         assert p2_hand[0] == aglab.State.VALUE_UNKNOWN
-        assert math.isnan(player_name)
+        assert math.isnan(player)
         
-        state.set_player('player-1')
+        state.set_player(1)
         p1_hand = state.get_value(propname='_placed', fkey='player-1_hand', scope='private', column='unknown')
         p2_hand = state.get_value(propname='_placed', fkey='player-2_hand', scope='private', column='unknown')
-        player_name = state.get_value(key='$player-name')
+        player = state.get_value(key='$player')
         self.assertEqual(p1_hand[0], aglab.State.VALUE_KNOWN) #自分の手札は'known'となる
         self.assertEqual(p2_hand[0], aglab.State.VALUE_UNKNOWN)
-        self.assertEqual(player_name, 'player-1')
+        self.assertEqual(player, 1)
+    
+    def test_last_1(self):
+        """last():コンポーネントがセットされていない場合
+        """
+        index = self.state.last('P1.p')
+        self.assertEqual(index, -1)
+    
+    def test_last_2(self):
+        """last():コンポーネントがセットされている場合
+        """
+        state = self.state
+        state.set_component('C1', ('F1', 0))
+        self.assertEqual(state.last('F1'), 0)
+        
+        state.set_component(('C2', 1), ('F1', 1))
+        self.assertEqual(state.last('F1'), 1)
     
     def test_set_component_1(self):
         """set_component():テストケース1
@@ -199,6 +215,13 @@ C2           0      _placed  F1              0.0    hidden         1    NaN
         self.assertEqual(True,
             math.isnan(state.get_value(component=('C2', 0), field=('F1', 0))))
         
+    def test_index_component(self):
+        state = self.state
+        state.set_component('C1', ('P1.h', 1))
+        index = state.index_component('C1', 'P1.h')
+        
+        self.assertEqual(index, 1)
+        
     def test_output_component_case1(self):
         """Case1: プレイヤー指定なし(DEBUG); 非公開状態
         """
@@ -270,7 +293,7 @@ class RewardTestCase(unittest.TestCase):
     
     def setUp(self):
         unittest.TestCase.setUp(self)
-        print
+        #print
     
     def testAdd_1(self):
         reward = aglab.Reward()
