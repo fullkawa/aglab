@@ -8,7 +8,8 @@ import re
 import string
 from pandas.core.index import MultiIndex
 
-from src import util, exception
+from src import util
+from src.exception import InvalidActionException
 
 class Game(object):
     """ゲーム
@@ -274,7 +275,12 @@ class Game(object):
     def perform_action(self, action):
         """アクションを実行する
         """
-        self._process(self.command, action=action, reward=self.reward, report=self.report)
+        try:
+            self._process(self.command, action=action, reward=self.reward, report=self.report)
+        except InvalidActionException as e:
+            print e
+            self.reward.add(-1)
+            self.done = True
         
     def _process(self, proc, action=None, reward=None, report=None):
         """定義された処理を実行する
@@ -788,7 +794,7 @@ class Reward(object):
         self.num_players = num_players
         self.negative_ratio = negative_ratio
         
-        self.rewards = [0] * (num_players + 1)
+        self.rewards = [0.0] * (num_players + 1)
         """報酬を管理する配列
             0 -> 管理対象プレイヤーの累積報酬値
             0以外 -> 管理対象プレイヤーごとの獲得報酬値
@@ -821,5 +827,5 @@ class Reward(object):
         return reward
     
     def __str__(self, *args, **kwargs):
-        return str(self.rewards)
+        return "Reward:" + str(self.rewards)
 

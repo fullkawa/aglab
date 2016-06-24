@@ -22,6 +22,7 @@ import os
 
 from module import common
 from src import util
+from src.exception import InvalidActionException
 
 """ゲームタイトル
 """
@@ -315,8 +316,12 @@ def set_card(state, args, reward=None, report=None):
     print '_to_key:', _to_key
     print '_to_index:', _to_index
     """
-    state.move_component((_from_key, _from_index), (_to_key, _to_index))
-    state.set_value(state.VALUE_UNKNOWN, fkey=_to_key, findex=_to_index, column='unknown')
+    if _from_index < 0:
+        message = '"{0}"のカードは手札にないため出せません。'.format(ckey)
+        raise InvalidActionException(message)
+    else:
+        state.move_component((_from_key, _from_index), (_to_key, _to_index))
+        state.set_value(state.VALUE_UNKNOWN, fkey=_to_key, findex=_to_index, column='unknown')
 
 def judge(state, args, reward=None, report=None):
     """カードを表向きにして勝敗を判定する
@@ -335,17 +340,17 @@ def judge(state, args, reward=None, report=None):
     # 勝敗判定
     tp = state.output_component(fkey=tp_played, findex=tp_last)
     np = state.output_component(fkey=np_played, findex=np_last)
-    #print 'tp:', tp, ' vs np:', np #DEBUG
+    print 'turn-player:', tp, ' vs next-player:', np
     if tp == np:
-        # あいこ
-        add_score(state, [1, turn_player])
-        add_score(state, [1, next_player])
+        print ' -> draw'
+        add_score(state, [1, turn_player], reward=reward, report=report)
+        add_score(state, [1, next_player], reward=reward, report=report)
     elif (tp=='G' and np=='T') or (tp=='T' and np=='P') or (tp=='P' and np=='G'):
-        # turn_playerの勝ち
-        add_score(state, [3, turn_player])
+        print ' -> turn-player win'
+        add_score(state, [3, turn_player], reward=reward, report=report)
     elif (tp=='G' and np=='P') or (tp=='T' and np=='G') or (tp=='P' and np=='T'):
-        # next_playerの勝ち
-        add_score(state, [3, next_player])
+        print ' -> next-player win'
+        add_score(state, [3, next_player], reward=reward, report=report)
     else:
         print 'Illegal hand; turn-player:', tp, ', next-player:', np
 
@@ -362,5 +367,6 @@ def add_score(state, args, reward=None, report=None):
     state.set_context(key, state.get_context(key) + score)
     
     if (reward is not None) and (player == int(state.get_context('$player'))):
-        reward.add(score)
+        r = float(score) / winner_score
+        reward.add(r)
 
