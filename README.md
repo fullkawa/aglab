@@ -10,7 +10,8 @@ aglabは自作アナログゲーム(ボードゲーム、カードゲームな�
 * [セットアップ](README.md#セットアップ)
 * [使い方](README.md#使い方)
  * [定義ファイル作成](README.md#定義ファイル作成)
- * [Jupyterでのテストプレイ](README.md#jupyterでのテストプレイ)
+ * [Jupyterでの手動テストプレイ](README.md#jupyterでの手動テストプレイ)
+ * [Jupyterでの自動テストプレイ](README.md#jupyterでの自動テストプレイ)
 * [利用上の注意](README.md#利用上の注意)
 * [プロジェクトへの貢献](README.md#プロジェクトへの貢献)
  * [非開発者向け](README.md#非開発者向け)
@@ -69,7 +70,7 @@ aglabを実行するためには、Python2.7 および NumPy, pandas 等のラ�
 
 それぞれを個別にインストールすることもできますが、[Anaconda](https://docs.continuum.io/anaconda/install)
 をインストールするのが近道です。  
-開発は、AnacondaをインストールしたMacOS上で行われています。  
+開発はAnacondaをインストールしたMacOS上で行われています。  
 
 上記がインストールされた環境にて以下のコマンドを実行し、aglabを取得します。
 ```
@@ -87,12 +88,19 @@ git clone git@github.com:fullkawa/aglab.git
 * 各属性の説明は、定義ファイル内コメントおよび[デザイナーズガイド](https://github.com/fullkawa/aglab/blob/master/doc/designersguide.md)を参照してください。
 
 
-### Jupyterでのテストプレイ
+### Jupyterでの手動テストプレイ
 
 1. Anacondaのランチャーからnotebook(Jupyter Notebook)を起動します。
 2. aglab/testplay.ipynbを開きます。
 3. 一番上のセルから順に実行します。メニューから"Cell > Run All"を選択しても良いでしょう。
 4. ゲームのプレイについては"How to play"を参照してください。
+
+
+### Jupyterでの自動テストプレイ
+
+1. Anacondaのランチャーからnotebook(Jupyter Notebook)を起動します。
+2. aglab/testauto.ipynbを開きます。
+3. 一番上のセルから順に実行します。メニューから"Cell > Run All"を選択しても良いでしょう。
 
 
 ## 利用上の注意
